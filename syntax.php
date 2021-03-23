@@ -121,7 +121,7 @@ class syntax_plugin_mediathumbnails extends DokuWiki_Syntax_Plugin {
 			$src = ml($mediapath_thumbnail,array());
 			
 			$i             = array();
-			$i['width']    = '100px';
+			$i['width']    = $this->getConf('thumb_width');//'100px';
 			//$i['height']   = '';
 			$i['title']      = $mediapath_file;
 			$i['class']    = 'tn';
