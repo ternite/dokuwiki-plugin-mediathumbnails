@@ -61,8 +61,8 @@ class syntax_plugin_mediathumbnails extends DokuWiki_Syntax_Plugin {
     {
 		$thumbnailpath = "Thumbnails/thumbnail.png";
 		
-		$mediapath = substr($match, 12, -2); //strip markup
-		$filepath = mediaFN($mediapath);
+		$mediapath_file = substr($match, 12, -2); //strip markup
+		$filepath = mediaFN($mediapath_file);
 		//$filepath = str_replace('\\', DIRECTORY_SEPARATOR, $filepath);
 		
 		$zip = new ZipArchive;
@@ -95,8 +95,8 @@ class syntax_plugin_mediathumbnails extends DokuWiki_Syntax_Plugin {
 			file_put_contents($filepath_thumbnail, $thumbnaildata);
 			
 			// give media path to renderer
-			$mediapath_thumbnail = substr($mediapath,0,strrpos($mediapath,':')) . ":" . $extended_filename;
-			return array($mediapath_thumbnail);
+			$mediapath_thumbnail = substr($mediapath_file,0,strrpos($mediapath_file,':')) . ":" . $extended_filename;
+			return array($mediapath_file, $mediapath_thumbnail);
 		}
 
 		return array();
@@ -113,7 +113,8 @@ class syntax_plugin_mediathumbnails extends DokuWiki_Syntax_Plugin {
      */
     public function render($mode, Doku_Renderer $renderer, $data)
     {
-		$mediapath_thumbnail = $data[0];
+		$mediapath_file = $data[0];
+		$mediapath_thumbnail = $data[1];
 		
         if ($mode == 'xhtml') {
 			
@@ -122,12 +123,13 @@ class syntax_plugin_mediathumbnails extends DokuWiki_Syntax_Plugin {
 			$i             = array();
 			$i['width']    = '100px';
 			//$i['height']   = $h;
-			//$i['border']   = 0;
-			//$i['alt']      = $this->_meta($img,'title');
+			//$i['alt']      = "Alternative title";
 			$i['class']    = 'tn';
 			$iatt = buildAttributes($i);
 			
-			$renderer->doc .= '<img src="'.$src.'" '.$iatt.' />';
+			$renderer->doc .= 	'<a href="/lib/exe/fetch.php?media=' . $mediapath_file . '">' .
+								'<img src="'.$src.'" '.$iatt.' />' .
+								'</a>';
             return true;
 			
         } elseif ($mode == 'odt') {
