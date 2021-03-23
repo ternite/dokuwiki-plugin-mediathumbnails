@@ -1,5 +1,5 @@
 # dokuwiki-plugin-mediathumbnails
-Extracts as thumbnail from odt files in a media library and shows it on the wiki page.
+Extracts a thumbnail from odt files in a media library and shows it on the wiki page.
 
 All documentation for this plugin can be found at
 [https://www.dokuwiki.org/plugin:mediathumbnails](https://www.dokuwiki.org/plugin:mediathumbnails)
