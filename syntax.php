@@ -122,8 +122,8 @@ class syntax_plugin_mediathumbnails extends DokuWiki_Syntax_Plugin {
 			
 			$i             = array();
 			$i['width']    = '100px';
-			//$i['height']   = $h;
-			//$i['alt']      = "Alternative title";
+			//$i['height']   = '';
+			$i['title']      = $mediapath_file;
 			$i['class']    = 'tn';
 			$iatt = buildAttributes($i);
 			
