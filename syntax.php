@@ -127,7 +127,7 @@ class syntax_plugin_mediathumbnails extends DokuWiki_Syntax_Plugin {
 			$i['class']    = 'tn';
 			$iatt = buildAttributes($i);
 			
-			$renderer->doc .= "{{".$mediapath_thumbnail."?100}}". '<img src="'.$src.'" '.$iatt.' />';
+			$renderer->doc .= '<img src="'.$src.'" '.$iatt.' />';
             return true;
 			
         } elseif ($mode == 'odt') {
