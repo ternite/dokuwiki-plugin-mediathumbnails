@@ -59,22 +59,24 @@ class syntax_plugin_mediathumbnails extends DokuWiki_Syntax_Plugin {
      */
     public function handle($match, $state, $pos, Doku_Handler $handler)
     {
-		$thumbnailpath = "Thumbnails/thumbnail.png";
+		// this is where thumbnails are stored within an odt file (which essentially is a .zip file named .odt)
+		$thumbnail_path = "Thumbnails/thumbnail.png";
+		$thumbnail_ending = strrchr($thumbnail_path,'.');
 		
 		$mediapath_file = substr($match, 12, -2); //strip markup
-		$filepath = mediaFN($mediapath_file);
-		//$filepath = str_replace('\\', DIRECTORY_SEPARATOR, $filepath);
+		
+		$filepath_local_file = mediaFN($mediapath_file);
 		
 		$zip = new ZipArchive;
 		
-		if ($zip->open($filepath) !== TRUE) {
+		if ($zip->open($filepath_local_file) !== TRUE) {
 			// odt file does not exist
 			return array();
 		}
 		
-		if ($zip->locateName($thumbnailpath) !== false) {
+		if ($zip->locateName($thumbnail_path) !== false) {
 			// thumbnail file exists
-			$fp = $zip->getStream($thumbnailpath);
+			$fp = $zip->getStream($thumbnail_path);
 			if(!$fp) {
 				return array();
 			}
@@ -87,9 +89,9 @@ class syntax_plugin_mediathumbnails extends DokuWiki_Syntax_Plugin {
 			fclose($fp);
 			
 			// write thumbnail file to media folder
-			$filedir = dirname($filepath);
-			$filename = basename($filepath);
-			$extended_filename = substr($filename,0,strrpos($filename,'.')).".thumbnail".strrchr($thumbnailpath,'.');
+			$filedir = dirname($filepath_local_file);
+			$filename = basename($filepath_local_file);
+			$extended_filename = substr($filename,0,strrpos($filename,'.')).".thumbnail".$thumbnail_ending;
 			
 			$filepath_thumbnail = $filedir . DIRECTORY_SEPARATOR . $extended_filename;
 			file_put_contents($filepath_thumbnail, $thumbnaildata);
@@ -121,7 +123,7 @@ class syntax_plugin_mediathumbnails extends DokuWiki_Syntax_Plugin {
 			$src = ml($mediapath_thumbnail,array());
 			
 			$i             = array();
-			$i['width']    = $this->getConf('thumb_width');//'100px';
+			$i['width']    = $this->getConf('thumb_width');
 			//$i['height']   = '';
 			$i['title']      = $mediapath_file;
 			$i['class']    = 'tn';
