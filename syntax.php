@@ -115,8 +115,7 @@ class syntax_plugin_mediathumbnails extends DokuWiki_Syntax_Plugin {
      */
     public function render($mode, Doku_Renderer $renderer, $data)
     {
-		$mediapath_file = $data[0];
-		$mediapath_thumbnail = $data[1];
+		list ($mediapath_file, $mediapath_thumbnail) = $data;
 		
         if ($mode == 'xhtml') {
 			
