@@ -62,13 +62,16 @@ class syntax_plugin_mediathumbnails extends DokuWiki_Syntax_Plugin {
 		// Locate the given media file and check if it can be opened as zip
 		$mediapath_file = substr($match, 12, -2); //strip markup
 		$filepath_local_file = mediaFN($mediapath_file);
+		$timestamp_local_file = file_exists($filepath_local_file) ? filemtime($filepath_local_file) : false;
 		
 		$zip = new ZipArchive;
 		if ($zip->open($filepath_local_file) !== TRUE) {
 			// media file does not exist
 			return array($mediapath_file);
 		}
-
+		
+		// The media file exists and acts as a zip file!
+		
 		// Check all possible paths (configured in configuration key 'thumb_paths') if there is a file available
 		$thumb_paths_to_investigate = $this->getConf('thumb_paths');
 		
@@ -76,7 +79,20 @@ class syntax_plugin_mediathumbnails extends DokuWiki_Syntax_Plugin {
 			$thumbnail_ending = strrchr($thumbnail_path,'.');
 	
 			if ($zip->locateName($thumbnail_path) !== false) {
-				// thumbnail file exists
+						
+				// The thumbnail file exists, so prepare more information, now!
+				$filedir = dirname($filepath_local_file);
+				$filename = basename($filepath_local_file);
+				$extended_filename = substr($filename,0,strrpos($filename,'.')).".thumbnail".$thumbnail_ending;
+				$filepath_thumbnail = $filedir . DIRECTORY_SEPARATOR . $extended_filename;
+				$mediapath_thumbnail = substr($mediapath_file,0,strrpos($mediapath_file,':')) . ":" . $extended_filename;
+				
+				if (file_exists($filepath_thumbnail) && filemtime($filepath_thumbnail) == $timestamp_local_file) {
+					// A thumbnail file for the current file version has already been created, don't extract it again, but give the renderer all needed information!
+					return array($mediapath_file, $mediapath_thumbnail);
+				}
+				
+				// Get the thumbnail file!
 				$fp = $zip->getStream($thumbnail_path);
 				if(!$fp) {
 					return array();
@@ -89,16 +105,13 @@ class syntax_plugin_mediathumbnails extends DokuWiki_Syntax_Plugin {
 				
 				fclose($fp);
 				
-				// write thumbnail file to media folder
-				$filedir = dirname($filepath_local_file);
-				$filename = basename($filepath_local_file);
-				$extended_filename = substr($filename,0,strrpos($filename,'.')).".thumbnail".$thumbnail_ending;
-				
-				$filepath_thumbnail = $filedir . DIRECTORY_SEPARATOR . $extended_filename;
+				// Write thumbnail file to media folder
 				file_put_contents($filepath_thumbnail, $thumbnaildata);
 				
-				// give media path to renderer
-				$mediapath_thumbnail = substr($mediapath_file,0,strrpos($mediapath_file,':')) . ":" . $extended_filename;
+				// Set timestamp to the media file's timestamp (this is used to check in later passes if the file already exists in the correct version).
+				touch($filepath_thumbnail, $timestamp_local_file);
+				
+				// Give media path to renderer
 				return array($mediapath_file, $mediapath_thumbnail);
 			}
 		}
