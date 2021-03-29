@@ -140,9 +140,9 @@ class syntax_plugin_mediathumbnails extends DokuWiki_Syntax_Plugin {
 			$i['class']    = 'tn';
 			$iatt = buildAttributes($i);
 			
-			$renderer->doc .= 	'<a href="/lib/exe/fetch.php?media=' . $mediapath_file . '">' .
+			$renderer->doc .= 	($this->getConf('link_to_media_file') ? '<a href="/lib/exe/fetch.php?media=' . $mediapath_file . '">' : '') .
 								'<img src="'.$src.'" '.$iatt.' />' .
-								'</a>';
+								($this->getConf('link_to_media_file') ? '</a>' : '');
             return true;
 			
         } elseif ($mode == 'odt') {
