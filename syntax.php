@@ -81,10 +81,8 @@ class syntax_plugin_mediathumbnails extends DokuWiki_Syntax_Plugin {
 			if ($zip->locateName($thumbnail_path) !== false) {
 						
 				// The thumbnail file exists, so prepare more information, now!
-				$filedir = dirname($filepath_local_file);
-				$filename = basename($filepath_local_file);
-				$extended_filename = substr($filename,0,strrpos($filename,'.')).".thumbnail".$thumbnail_ending;
-				$filepath_thumbnail = $filedir . DIRECTORY_SEPARATOR . $extended_filename;
+				$extended_filename = basename($filepath_local_file) . ".thumb" . $thumbnail_ending;
+				$filepath_thumbnail = dirname($filepath_local_file) . DIRECTORY_SEPARATOR . $extended_filename;
 				$mediapath_thumbnail = substr($mediapath_file,0,strrpos($mediapath_file,':')) . ":" . $extended_filename;
 				
 				if (file_exists($filepath_thumbnail) && filemtime($filepath_thumbnail) == $timestamp_local_file) {
@@ -136,7 +134,7 @@ class syntax_plugin_mediathumbnails extends DokuWiki_Syntax_Plugin {
 			
 			// check if a thumbnail file was found
 			if (!$mediapath_thumbnail) {
-				if ($this->getConf('show_no_thumb_error')) {
+				if ($this->getConf('show_missing_thumb_error')) {
 					$renderer->doc .= trim($this->getConf('no_thumb_error_message')) . " " . $mediapath_file;
 					return true;
 				} else {
