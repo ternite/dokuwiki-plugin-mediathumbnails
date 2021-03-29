@@ -59,49 +59,51 @@ class syntax_plugin_mediathumbnails extends DokuWiki_Syntax_Plugin {
      */
     public function handle($match, $state, $pos, Doku_Handler $handler)
     {
-		// this is where thumbnails are stored within an odt file (which essentially is a .zip file named .odt)
-		$thumbnail_path = "Thumbnails/thumbnail.png";
-		$thumbnail_ending = strrchr($thumbnail_path,'.');
-		
+		// Locate the given media file and check if it can be opened as zip
 		$mediapath_file = substr($match, 12, -2); //strip markup
-		
 		$filepath_local_file = mediaFN($mediapath_file);
 		
 		$zip = new ZipArchive;
-		
 		if ($zip->open($filepath_local_file) !== TRUE) {
-			// odt file does not exist
-			return array();
-		}
-		
-		if ($zip->locateName($thumbnail_path) !== false) {
-			// thumbnail file exists
-			$fp = $zip->getStream($thumbnail_path);
-			if(!$fp) {
-				return array();
-			}
-			
-			$thumbnaildata = '';
-			while (!feof($fp)) {
-				$thumbnaildata .= fread($fp, 8192);
-			}
-			
-			fclose($fp);
-			
-			// write thumbnail file to media folder
-			$filedir = dirname($filepath_local_file);
-			$filename = basename($filepath_local_file);
-			$extended_filename = substr($filename,0,strrpos($filename,'.')).".thumbnail".$thumbnail_ending;
-			
-			$filepath_thumbnail = $filedir . DIRECTORY_SEPARATOR . $extended_filename;
-			file_put_contents($filepath_thumbnail, $thumbnaildata);
-			
-			// give media path to renderer
-			$mediapath_thumbnail = substr($mediapath_file,0,strrpos($mediapath_file,':')) . ":" . $extended_filename;
-			return array($mediapath_file, $mediapath_thumbnail);
+			// media file does not exist
+			return array($mediapath_file);
 		}
 
-		return array();
+		// Check all possible paths (configured in configuration key 'thumb_paths') if there is a file available
+		$thumb_paths_to_investigate = $this->getConf('thumb_paths');
+		
+		foreach($thumb_paths_to_investigate as $thumbnail_path) {
+			$thumbnail_ending = strrchr($thumbnail_path,'.');
+	
+			if ($zip->locateName($thumbnail_path) !== false) {
+				// thumbnail file exists
+				$fp = $zip->getStream($thumbnail_path);
+				if(!$fp) {
+					return array();
+				}
+				
+				$thumbnaildata = '';
+				while (!feof($fp)) {
+					$thumbnaildata .= fread($fp, 8192);
+				}
+				
+				fclose($fp);
+				
+				// write thumbnail file to media folder
+				$filedir = dirname($filepath_local_file);
+				$filename = basename($filepath_local_file);
+				$extended_filename = substr($filename,0,strrpos($filename,'.')).".thumbnail".$thumbnail_ending;
+				
+				$filepath_thumbnail = $filedir . DIRECTORY_SEPARATOR . $extended_filename;
+				file_put_contents($filepath_thumbnail, $thumbnaildata);
+				
+				// give media path to renderer
+				$mediapath_thumbnail = substr($mediapath_file,0,strrpos($mediapath_file,':')) . ":" . $extended_filename;
+				return array($mediapath_file, $mediapath_thumbnail);
+			}
+		}
+
+		return array($mediapath_file);
     }
 
     /**
@@ -119,6 +121,16 @@ class syntax_plugin_mediathumbnails extends DokuWiki_Syntax_Plugin {
 		
         if ($mode == 'xhtml') {
 			
+			// check if a thumbnail file was found
+			if (!$mediapath_thumbnail) {
+				if ($this->getConf('show_no_thumb_error')) {
+					$renderer->doc .= trim($this->getConf('no_thumb_error_message')) . " " . $mediapath_file;
+					return true;
+				} else {
+					return false;
+				}
+			}
+				
 			$src = ml($mediapath_thumbnail,array());
 			
 			$i             = array();
