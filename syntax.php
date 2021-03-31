@@ -61,78 +61,12 @@ class syntax_plugin_mediathumbnails extends DokuWiki_Syntax_Plugin {
     {
 		// Locate the given media file and check if it can be opened as zip
 		$mediapath_file = substr($match, 12, -2); //strip markup
-		$filepath_local_file = mediaFN($mediapath_file);
-		$timestamp_local_file = file_exists($filepath_local_file) ? filemtime($filepath_local_file) : false;
 		
-		//TODO: check for extension "fileinfo", then check for MIME type: if (mime_content_type($filepath_local_file) == "application/pdf") {
-		if (substr($mediapath_file,-4) == ".pdf") {
-			//$extended_filename = basename($filepath_local_file) . ".".$this->getConf('thumb_width').".jpg"; 
-			$extended_filename = basename($filepath_local_file) . ".thumb.jpg"; 
-			$filepath_thumbnail = dirname($filepath_local_file) . DIRECTORY_SEPARATOR . $extended_filename;
-			$mediapath_thumbnail = substr($mediapath_file,0,strrpos($mediapath_file,':')) . ":" . $extended_filename;
-			
-			$im = new imagick( $filepath_local_file."[0]" ); 
-			$im->setImageColorspace(255); 
-			$im->setResolution(300, 300);
-			$im->setCompressionQuality(95); 
-			$im->setImageFormat('jpeg');
-			//$im->resizeImage($this->getConf('thumb_width')*3,0,imagick::FILTER_LANCZOS ,1);
-			$im->writeImage($filepath_thumbnail);
-			$im->clear(); 
-			$im->destroy();
-			return array($mediapath_file,$mediapath_thumbnail);
+		$thumb = new thumbnail($mediapath_file,$this);
+		if ($thumb->create()) {
+			return array($mediapath_file,$thumb->getMediapath());
 		}
 		
-		$zip = new ZipArchive;
-		if ($zip->open($filepath_local_file) !== TRUE) {
-			// media file does not exist
-			return array($mediapath_file);
-		}
-		
-		// The media file exists and acts as a zip file!
-		
-		// Check all possible paths (configured in configuration key 'thumb_paths') if there is a file available
-		$thumb_paths_to_investigate = $this->getConf('thumb_paths');
-		
-		foreach($thumb_paths_to_investigate as $thumbnail_path) {
-			$thumbnail_ending = strrchr($thumbnail_path,'.');
-	
-			if ($zip->locateName($thumbnail_path) !== false) {
-						
-				// The thumbnail file exists, so prepare more information, now!
-				$extended_filename = basename($filepath_local_file) . ".thumb" . $thumbnail_ending;
-				$filepath_thumbnail = dirname($filepath_local_file) . DIRECTORY_SEPARATOR . $extended_filename;
-				$mediapath_thumbnail = substr($mediapath_file,0,strrpos($mediapath_file,':')) . ":" . $extended_filename;
-
-				if (file_exists($filepath_thumbnail) && filemtime($filepath_thumbnail) == $timestamp_local_file) {
-					// A thumbnail file for the current file version has already been created, don't extract it again, but give the renderer all needed information!
-					return array($mediapath_file, $mediapath_thumbnail);
-				}
-				
-				// Get the thumbnail file!
-				$fp = $zip->getStream($thumbnail_path);
-				if(!$fp) {
-					return array();
-				}
-				
-				$thumbnaildata = '';
-				while (!feof($fp)) {
-					$thumbnaildata .= fread($fp, 8192);
-				}
-				
-				fclose($fp);
-				
-				// Write thumbnail file to media folder
-				file_put_contents($filepath_thumbnail, $thumbnaildata);
-				
-				// Set timestamp to the media file's timestamp (this is used to check in later passes if the file already exists in the correct version).
-				touch($filepath_thumbnail, $timestamp_local_file);
-				
-				// Give media path to renderer
-				return array($mediapath_file, $mediapath_thumbnail);
-			}
-		}
-
 		return array($mediapath_file);
     }
 
@@ -187,3 +121,177 @@ class syntax_plugin_mediathumbnails extends DokuWiki_Syntax_Plugin {
     }
 }
 
+class thumbnail {
+	
+	private $source_filepath;
+	private $source_mediapath;
+	private ?thumb_engine $thumb_engine = null;
+	
+	public function __construct(string $source_filepath, DokuWiki_Syntax_Plugin $plugin, bool $ismediapath = true) {
+		
+		if ($ismediapath) {
+			$this->source_mediapath = $source_filepath;
+			$this->source_filepath = mediaFN($source_filepath);
+		} else {
+			$this->source_mediapath = false;
+			$this->source_filepath = $source_filepath;
+		}
+		
+		// Now attach the correct thumb_engine for the file type of the source file
+		//TODO: check for extension "fileinfo", then check for MIME type: if (mime_content_type($filepath_local_file) == "application/pdf") {
+		if (substr($this->source_filepath,-4) == ".pdf") {
+			$this->thumb_engine = new thumb_pdf_engine($this,$plugin->getConf('thumb_width'));
+		} else {
+			$this->thumb_engine = new thumb_zip_engine($this,$plugin->getConf('thumb_width'),$plugin->getConf('thumb_paths'));
+		}
+	}
+	
+	public function create() {
+		if (!$this->thumb_engine) {
+			return false;
+		}
+		
+		return $this->thumb_engine->act();
+	}
+	
+	public function getSourceFilepath() {
+		return $this->source_filepath;
+	}
+	
+	protected function getFilename() {
+		
+		return basename($this->source_filepath) . ".thumb.".$this->thumb_engine->getFileSuffix();
+	}
+	
+	public function getFilepath() {
+		return dirname($this->source_filepath) . DIRECTORY_SEPARATOR . $this->getFilename();
+	}
+	
+	public function getMediapath() {
+		if ($this->source_mediapath !== false) {
+			return substr($this->source_mediapath,0,strrpos($this->source_mediapath,':')) . ":" . $this->getFilename();
+		} else {
+			return false;
+		}
+	}
+	
+	public function getTimestamp() {
+		return file_exists($this->getFilepath()) ? filemtime($this->getFilepath()) : false;
+	}
+}
+
+abstract class thumb_engine {
+	
+	private ?thumbnail $thumbnail = null;
+	private int $width;
+	
+	public function __construct(thumbnail $thumbnail, int $width) {
+		$this->thumbnail = $thumbnail;
+		$this->width = $width;
+	}
+	
+	protected function getSourceFilepath() {
+		return $this->thumbnail->getSourceFilepath();
+	}
+	
+	protected function getTargetFilepath() {
+		return $this->thumbnail->getFilepath();
+	}
+	
+	protected function getTargetWidth() {
+		return $this->width;
+	}
+	
+	public function act() {
+		if ($this->act_internal()) {
+			// Set timestamp to the source file's timestamp (this is used to check in later passes if the file already exists in the correct version).
+			touch($this->getTargetFilepath(), filemtime($this->getSourceFilepath()));
+			return true;
+		}
+		return false;
+	}
+	
+	public abstract function act_internal();
+	
+	public abstract function getFileSuffix();
+}
+	
+class thumb_pdf_engine extends thumb_engine {
+	
+	public function getFileSuffix() {
+		return "jpg";
+	}
+	
+	public function act_internal() {
+		$im = new imagick( $this->getSourceFilepath()."[0]" ); 
+		$im->setImageColorspace(255); 
+		$im->setResolution(300, 300);
+		$im->setCompressionQuality(95); 
+		$im->setImageFormat('jpeg');
+		//$im->resizeImage(substr($this->getConf('thumb_width'),-2),0,imagick::FILTER_LANCZOS,0.9);
+		$im->writeImage($this->getTargetFilepath());
+		$im->clear(); 
+		$im->destroy();
+		
+		return true;
+	}
+}
+	
+class thumb_zip_engine extends thumb_engine {
+	
+	private array $thumb_paths;
+	private $file_suffix = "";
+	
+	public function __construct(thumbnail $thumbnail, int $width, array $thumb_paths) {
+		parent::__construct($thumbnail,$width);
+		$this->thumb_paths = $thumb_paths;
+	}
+	
+	public function getFileSuffix() {
+		return $this->file_suffix;
+	}
+	
+	public function act_internal() {
+		$zip = new ZipArchive;
+		if ($zip->open($this->getSourceFilepath()) !== true) {
+			// file is no zip or cannot be opened
+			return false;
+		}
+		$timestamp_local_file = filemtime($this->getSourceFilepath());
+		
+		// The media file exists and acts as a zip file!
+		
+		// Check all possible paths (configured in configuration key 'thumb_paths') if there is a file available
+		foreach($this->thumb_paths as $thumbnail_path) {
+			$this->file_suffix = substr(strrchr($thumbnail_path,'.'),1);
+	
+			if ($zip->locateName($thumbnail_path) !== false) {
+
+				if (file_exists($this->getTargetFilepath()) && filemtime($this->getTargetFilepath()) == $timestamp_local_file) {
+					// A thumbnail file for the current file version has already been created, just report that the file is in place by returning true:
+					return true;
+				}
+				
+				// Get the thumbnail file!
+				$fp = $zip->getStream($thumbnail_path);
+				if(!$fp) {
+					return false;
+				}
+				
+				$thumbnaildata = '';
+				while (!feof($fp)) {
+					$thumbnaildata .= fread($fp, 8192);
+				}
+				
+				fclose($fp);
+				
+				// Write thumbnail file to media folder
+				file_put_contents($this->getTargetFilepath(), $thumbnaildata);
+				
+				return true;
+			}
+		}
+		
+		return true;
+	}
+}
