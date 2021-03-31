@@ -205,10 +205,17 @@ abstract class thumb_engine {
 	public function act() {
 		if ($this->act_internal()) {
 			// Set timestamp to the source file's timestamp (this is used to check in later passes if the file already exists in the correct version).
-			touch($this->getTargetFilepath(), filemtime($this->getSourceFilepath()));
+			if (filemtime($this->getSourceFilepath()) !== filemtime($this->getTargetFilepath())) {
+				touch($this->getTargetFilepath(), filemtime($this->getSourceFilepath()));
+			}
 			return true;
 		}
 		return false;
+	}
+	
+	// Checks if a thumbnail file for the current file version has already been created
+	protected function thumb_needs_update() {
+		return file_exists($this->getTargetFilepath()) && filemtime($this->getTargetFilepath()) !== filemtime($this->getSourceFilepath());
 	}
 	
 	public abstract function act_internal();
@@ -223,17 +230,21 @@ class thumb_pdf_engine extends thumb_engine {
 	}
 	
 	public function act_internal() {
-		$im = new imagick( $this->getSourceFilepath()."[0]" ); 
-		$im->setImageColorspace(255); 
-		$im->setResolution(300, 300);
-		$im->setCompressionQuality(95); 
-		$im->setImageFormat('jpeg');
-		//$im->resizeImage(substr($this->getConf('thumb_width'),-2),0,imagick::FILTER_LANCZOS,0.9);
-		$im->writeImage($this->getTargetFilepath());
-		$im->clear(); 
-		$im->destroy();
-		
-		return true;
+		if ($this->thumb_needs_update()) {
+			$im = new imagick( $this->getSourceFilepath()."[0]" ); 
+			$im->setImageColorspace(255); 
+			$im->setResolution(300, 300);
+			$im->setCompressionQuality(95); 
+			$im->setImageFormat('jpeg');
+			//$im->resizeImage(substr($this->getConf('thumb_width'),-2),0,imagick::FILTER_LANCZOS,0.9);
+			$im->writeImage($this->getTargetFilepath());
+			$im->clear(); 
+			$im->destroy();
+			
+			return true;
+		} else {
+			return true;
+		}
 	}
 }
 	
@@ -252,12 +263,12 @@ class thumb_zip_engine extends thumb_engine {
 	}
 	
 	public function act_internal() {
+		
 		$zip = new ZipArchive;
 		if ($zip->open($this->getSourceFilepath()) !== true) {
 			// file is no zip or cannot be opened
 			return false;
 		}
-		$timestamp_local_file = filemtime($this->getSourceFilepath());
 		
 		// The media file exists and acts as a zip file!
 		
@@ -267,8 +278,7 @@ class thumb_zip_engine extends thumb_engine {
 	
 			if ($zip->locateName($thumbnail_path) !== false) {
 
-				if (file_exists($this->getTargetFilepath()) && filemtime($this->getTargetFilepath()) == $timestamp_local_file) {
-					// A thumbnail file for the current file version has already been created, just report that the file is in place by returning true:
+				if (!$this->thumb_needs_update()) {
 					return true;
 				}
 				
