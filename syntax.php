@@ -64,6 +64,25 @@ class syntax_plugin_mediathumbnails extends DokuWiki_Syntax_Plugin {
 		$filepath_local_file = mediaFN($mediapath_file);
 		$timestamp_local_file = file_exists($filepath_local_file) ? filemtime($filepath_local_file) : false;
 		
+		//TODO: check for extension "fileinfo", then check for MIME type: if (mime_content_type($filepath_local_file) == "application/pdf") {
+		if (substr($mediapath_file,-4) == ".pdf") {
+			//$extended_filename = basename($filepath_local_file) . ".".$this->getConf('thumb_width').".jpg"; 
+			$extended_filename = basename($filepath_local_file) . ".thumb.jpg"; 
+			$filepath_thumbnail = dirname($filepath_local_file) . DIRECTORY_SEPARATOR . $extended_filename;
+			$mediapath_thumbnail = substr($mediapath_file,0,strrpos($mediapath_file,':')) . ":" . $extended_filename;
+			
+			$im = new imagick( $filepath_local_file."[0]" ); 
+			$im->setImageColorspace(255); 
+			$im->setResolution(300, 300);
+			$im->setCompressionQuality(95); 
+			$im->setImageFormat('jpeg');
+			//$im->resizeImage($this->getConf('thumb_width')*3,0,imagick::FILTER_LANCZOS ,1);
+			$im->writeImage($filepath_thumbnail);
+			$im->clear(); 
+			$im->destroy();
+			return array($mediapath_file,$mediapath_thumbnail);
+		}
+		
 		$zip = new ZipArchive;
 		if ($zip->open($filepath_local_file) !== TRUE) {
 			// media file does not exist
@@ -84,7 +103,7 @@ class syntax_plugin_mediathumbnails extends DokuWiki_Syntax_Plugin {
 				$extended_filename = basename($filepath_local_file) . ".thumb" . $thumbnail_ending;
 				$filepath_thumbnail = dirname($filepath_local_file) . DIRECTORY_SEPARATOR . $extended_filename;
 				$mediapath_thumbnail = substr($mediapath_file,0,strrpos($mediapath_file,':')) . ":" . $extended_filename;
-				
+
 				if (file_exists($filepath_thumbnail) && filemtime($filepath_thumbnail) == $timestamp_local_file) {
 					// A thumbnail file for the current file version has already been created, don't extract it again, but give the renderer all needed information!
 					return array($mediapath_file, $mediapath_thumbnail);
@@ -129,7 +148,7 @@ class syntax_plugin_mediathumbnails extends DokuWiki_Syntax_Plugin {
     public function render($mode, Doku_Renderer $renderer, $data)
     {
 		list ($mediapath_file, $mediapath_thumbnail) = $data;
-		
+
         if ($mode == 'xhtml') {
 			
 			// check if a thumbnail file was found
