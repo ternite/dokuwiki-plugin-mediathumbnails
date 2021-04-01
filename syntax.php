@@ -99,11 +99,11 @@ class syntax_plugin_mediathumbnails extends DokuWiki_Syntax_Plugin {
 				
 			$src = ml($mediapath_thumbnail,array());
 			
-			$i             = array();
-			$i['width']    = $this->getConf('thumb_max_dimension'); //TODO: ausrichtung herausrechnen!
-			//$i['height']   = '';
-			$i['title']      = $mediapath_file;
-			$i['class']    = 'tn';
+			$i          = array();
+			
+			$i['title'] = $mediapath_file;
+			$i['style'] = "max-width:".$this->getConf('thumb_max_dimension')."px;max-height:".$this->getConf('thumb_max_dimension')."px";
+			
 			$iatt = buildAttributes($i);
 			
 			$renderer->doc .= 	($this->getConf('link_to_media_file') ? '<a href="/lib/exe/fetch.php?media=' . $mediapath_file . '">' : '') .

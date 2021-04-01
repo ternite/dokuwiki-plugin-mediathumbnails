@@ -25,10 +25,11 @@ class thumbnail {
 	private static ?bool $no_ghostscript_support = null;
 	
 	private static function testDependencies() {
-		// TODO: move support tests to a Singleton
+		
 		self::$image_support = false;
 		self::$pdf_support = false;
 		self::$no_ghostscript_support = false;
+		
 		if (class_exists ("Imagick")) {
 			// determine file formats supported by ImageMagick
 			self::$formats = \Imagick::queryformats();
