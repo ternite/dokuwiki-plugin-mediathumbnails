@@ -148,6 +148,7 @@ class thumbnail {
 		// TODO: move support tests to a Singleton
 		$image_support = false;
 		$pdf_support = false;
+		$no_ghostscript = false;
 		if (class_exists ("Imagick")) {
 			// determine file formats supported by ImageMagick
 			$this->formats = \Imagick::queryformats();
@@ -162,7 +163,9 @@ class thumbnail {
 						$im->destroy();
 						$pdf_support = true;
 					} catch (ImagickException $e) {
-						//PDFDelegateFailed
+						if (strpos($e,"PDFDelegateFailed") !== false) {
+							$no_ghostscript = true;
+						}
 						$pdf_support = false;
 					}
 					
@@ -179,7 +182,11 @@ class thumbnail {
 			if ($pdf_support) {
 				$this->thumb_engine = new thumb_pdf_engine($this);
 			} else {
-				dbg("plugin mediathumbnails: PDF files are supported, but not on this system.\nPlease refer to the plugin documentation for a description of the dependencies.");
+				if ($no_ghostscript) {
+					dbg("plugin mediathumbnails: PDF files are supported, but not on this system.\nMost likely, ImageMagick and its PHP extension imagick are installed properly, but GhostScript is not.\nPlease refer to the plugin documentation for a description of the dependencies.");
+				} else {
+					dbg("plugin mediathumbnails: PDF files are supported, but not on this system.\nMost likely, ImageMagick or its PHP extension imagick are not installed properly.\nPlease refer to the plugin documentation for a description of the dependencies.");
+				}
 			}
 		} else if ($image_support && in_array(strtoupper($sourceFileSuffix), $this->formats)) {
 			// file suffix is in support list of ImageMagick
