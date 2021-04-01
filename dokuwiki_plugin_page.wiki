@@ -1,18 +1,18 @@
 ====== mediathumbnails Plugin ======
 
 ---- plugin ----
-description: Extracts a thumbnail from media files (ODT, DOCX, PPTX, etc., [no PDF, yet]) in a media library and shows it on the wiki page.
+description: Extracts a thumbnail from media files (ODT, DOCX, PPTX, PDF, JPG, etc.) in a media library and shows it on the wiki page.
 author     : Thomas Schäfer
 email      : thomas@hilbershome.de 
 type       : syntax
-lastupdate : 2021-03-29
+lastupdate : 2021-04-02
 compatible : 2020-07-29 "Hogfather"
 depends    : 
 conflicts  : 
 similar    : 
 tags       : images, media
 
-downloadurl: https://github.com/ternite/dokuwiki-plugin-mediathumbnails/archive/v0.81.zip
+downloadurl: https://github.com/ternite/dokuwiki-plugin-mediathumbnails/archive/v0.91.zip
 bugtracker : hhttps://github.com/ternite/dokuwiki-plugin-mediathumbnails/issues
 sourcerepo : https://github.com/ternite/dokuwiki-plugin-mediathumbnails
 donationurl: 
@@ -20,25 +20,35 @@ donationurl:
 screenshot_img : 
 ----
 
-===== Installation =====
+===== Installation and Dependencies =====
 
 Install the plugin using the [[plugin:plugin|Plugin Manager]] and the download URL above, which points to latest version of the plugin. Refer to [[:Plugins]] on how to install plugins manually.
 
+:!: **External requirements:** Office files (ODT, DOCX, PPTX, etc.) are supported natively. If you need image or PDF support, this plugin requires the following additional components that must be installed and integrated into your PHP environment separately: 
+
+  * [[https://imagemagick.org|ImageMagick]] //(obligatory for both image and PDF support)//
+  * [[https://github.com/Imagick/imagick|Imagick]] (PHP extension for ImageMagick integration) //(obligatory for both image and PDF support)//
+  * [[https://www.ghostscript.com/index.html|GhostScript]] //(obligatory for PDF support)//
+
+Hints:
+  * Installation on Windows were troublesome for me. The best description of how to install ImageMagick and Imagick was: [[https://tektriks.com/a-step-by-step-guide-on-how-to-install-imagemagick-in-windows/|A step by step guide on how to install ImageMagick in Windows]].
+  * Concerning the installation of GhostScript: despite all my efforts to wed GhostScript to ImageMagick via configuration failed. I finally added GhostScripts `bin` folder to the System Environment PATH variable (which is ok) and then I renamed `gswin32c.exe` to `gs.exe` (then I made my donut suffer for it).
+
 ===== What's it for? =====
 
-This plugin will show thumbnail images for media files that are packages ZIP files containing a thumbnail image (ODT, DOCX, PPTX etc., but **not PDF**, yet) within your wiki pages. It will not generate any images, but look for an already embedded thumbnail within the document file, then show the thumbnail on your wiki page.
+This plugin will show thumbnail images for supported media files (ODT, DOCX, PPTX, PDF, JPG, etc.) within your wiki pages.
 
 In default settings, a click in the thumbnail will have your browser download the media file.
 
-And an error message will be shown by default in case a referenced media file does not contain a thumbnail. Or, more precisely: when the media file either does not exist, is not a zip file, or the configuration option `thumb_paths` does not point to a thumbnail file within a media file.
+And an error message will be shown by default in case a referenced media file does not contain a thumbnail (office files) or is an unsupported file type (see dependencies on how you might work around that).
 
 ===== Syntax =====
 
 <code>{{thumbnail>media_path_and_filename}}</code>
 
-Shows a thumbnail of the media file given via the string `media_path_and_filename` (standard file path for the [[:media_manager|Media Manager]]). This will only work, if a thumbnail image already has been saved within the file (which nowadays should be very common).
+Shows a thumbnail of the media file given via the string `media_path_and_filename` (standard file path for the [[:media_manager|Media Manager]]). In case of an office file (ODT, DOCX, PPTX, etc.), this will only work, if a thumbnail image already has been saved within the file (which nowadays should be very common).
 
-In order to be able to show the thumbnail image, the image itself is stored within the media library alongside the media file. The filename of the thumbnail image will be the media file's namespace path and its name, concatenated by '.thumb' and the corresponding image file ending.
+In order to be able to show the thumbnail image, the image itself is stored within the media library alongside the media file (see [[#Implementation Details|Implementation Details]]).
 
 The plugin watches file changes at the moment a wiki page is rendered. You might need to watch out for page caching!
 
@@ -46,13 +56,43 @@ In case a media file is replaced by another file (with the same name), this will
 
 **Example:** <code>{{thumbnail>main:media_namespace:presentation.pptx}}</code>
 
-This will show a thumbnail of the Powerpoint presentation in your wiki page. The thumbnail image will be stored within the media library as `main:media_namespace:presentation.pptx.thumb.jpeg` (because jpeg appears to be the format of thumbnail images within a PPTX file).
+This will show a thumbnail of the Powerpoint presentation in your wiki page. The thumbnail image will be stored within the media library as `main:media_namespace:presentation.pptx.thumb100.jpeg` (with default settings, and because JPEG appears to be the format of thumbnail images within a PPTX file).
+
+===== Implementation Details =====
+
+In all cases where a file format is supported by the plugin, it will add a thumbnail image into the [[:media_manager|Media Manager]]. In case you decide later on that you don't want these images within your media, your only option is to remove them manually.
+
+The name of the thumbnail will be: <code>{original_filename}.thumb{thumb_max_dimension}.{image_suffix}</code>
+
+The following examples assume the default value of 100 for `thumb_max_dimension`.
+
+**Example 1:** my_dog.jpg => my_dog.jpg.thumb100.jpg
+
+**Example 2:** presentation.pdf => presentation.pdf.thumb100.jpg
+
+The file format for PDF thumbnails will always be JPG.
+
+**Example 3:** presentation.pptx => presentation.pptx.thumb100.png
+
+Note that the file format of the thumbnail in office files might theoretically be any image file format. It depends on the format found within the office file. If you use office files with differing file formats, you might need to adjust the config setting `thumb_paths`. If you have such an office file, I'd like to hear about that so I can add the format to the default value of that config option.
+
+==== Office files ====
+
+When looking for thumbnails of office files (ODT, DOCX, etc.), the plugin essentially assumes these files to be ZIP files containing a thumbnail image at a specific path (see config setting `thumb_paths`). It will not generate any images for office files, but look for an already embedded thumbnail within the document file, then show the thumbnail on your wiki page.
+
+==== Image files ====
+
+The plugin will need a properly installed and integrated **ImageMagick** and **Imagick** suite (see [[#Installation and Dependencies]]). Then it will load the image into ImageMagick and transform it into a thumbnail image.
+
+==== PDF files ====
+
+In order to create thumbnails for PDF files, in addition to a requirement of **ImageMagick** and **Imagick**, you will also need a properly installed and configured **GhostScript** (see [[#Installation and Dependencies]]). The plugin will then transform the first page of the PDF file to a JPG thumbnail.
 
 ===== Configuration and Settings =====
 
 //(compare: [[:devel:configuration#configuration_metadata|Configuration metadata]] for configuration classes)//
 
-^ **thumb_max_dimension** | Default width to set for a thumbnail (in pixels, enter without units). The thumbnail will have this size vertically or horizontally - in case the image is not quadratic, the other dimension will be smaller. ||
+^ **thumb_max_dimension** | Default dimension to set for a thumbnail (in pixels, enter without units). The thumbnail will fit into a quadratic box of this size - in case the image is not quadratic, the other dimension will be reduced per aspect ratio. ||
 | ::: | numeric, default: | **"100"** |
 ^ **thumb_paths** | Paths within media files (format: ZIP) to look at for thumbnail images (comma-separated list, use slashes as directory delimiters). //Is defaulted for paths within ODT files and MS Office files, but can be extended in case of other formats.// ||
 | ::: | array, default: | **array("Thumbnails/thumbnail.png", "docProps/thumbnail.jpeg")** |
@@ -63,6 +103,8 @@ This will show a thumbnail of the Powerpoint presentation in your wiki page. The
 ^ **no_thumb_error_message** | Error message to be shown when no thumbnail was found, and 'show_no_thumb_error' is set. Media path will automatically be appended! |
 | ::: | string, default: | **"No thumbnail in "** \\ //note: media path will automatically be appended// |
 
+If your PDF and/or image thumbnails don't show up, consider activating the `allowdebug` option in the DokuWiki base configuratoin. I added some checks that should output information on dependency status.
+
 ===== Development =====
 
 [[https://github.com/ternite/dokuwiki-plugin-mediathumbnails|Sources]] on github.
@@ -71,6 +113,9 @@ This will show a thumbnail of the Powerpoint presentation in your wiki page. The
 
   * **2021-03-29**
     * v0.81 (Initial release)
+  * **2021-04-02**
+    * v0.91 (added image and PDF support)
+      * config option `thumb_width` was dropped, so you might want to delete that entry from `conf/local.php` if you upgraded from v0.81 and had altered that value
 
 === Known Bugs and Issues ===
 

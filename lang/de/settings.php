@@ -4,7 +4,7 @@
  *
  */
 
-$lang['thumb_max_dimension']      = "Standard-Größe für Thumbnails (in Pixeln, ohne Einheit eingeben). Das Thumbnail wird vertikal oder horizontal diese Größe haben - falls das Bild nicht quadratisch ist, wird die andere Dimension kleiner.";
+$lang['thumb_max_dimension']      = "Standardmaße für Thumbnails (in Pixeln, ohne Einheit eingeben). Das Thumbnail wird in eine quatratische Box dieser Größe passen - falls das Bild nicht quadratisch ist, wird die andere Dimension entsprechend des Seitenverhältnisses kleiner.";
 $lang['thumb_paths']              = "Pfade innerhalb von Mediendateien (Format: ZIP), an denen nach Thumbnails gesucht werden soll (Komma-separierte Liste, Schrägstrich als Verzeichnis-Trenner).";
 $lang['link_to_media_file']       = "Soll bei Klick auf das Thumbnail die Mediendatei heruntergeladen werden?";
 $lang['show_missing_thumb_error'] = "Soll eine Fehlermeldung angezeigt werden, wenn kein Thumbnail gefunden werden konnte?";
