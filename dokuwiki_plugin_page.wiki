@@ -1,0 +1,85 @@
+====== mediathumbnails Plugin ======
+
+---- plugin ----
+description: Extracts a thumbnail from media files (ODT, DOCX, PPTX, etc., [no PDF, yet]) in a media library and shows it on the wiki page.
+author     : Thomas Schäfer
+email      : thomas@hilbershome.de 
+type       : syntax
+lastupdate : 2021-03-29
+compatible : 2020-07-29 "Hogfather"
+depends    : 
+conflicts  : 
+similar    : 
+tags       : images, media
+
+downloadurl: https://github.com/ternite/dokuwiki-plugin-mediathumbnails/archive/v0.81.zip
+bugtracker : hhttps://github.com/ternite/dokuwiki-plugin-mediathumbnails/issues
+sourcerepo : https://github.com/ternite/dokuwiki-plugin-mediathumbnails
+donationurl: 
+
+screenshot_img : 
+----
+
+===== Installation =====
+
+Install the plugin using the [[plugin:plugin|Plugin Manager]] and the download URL above, which points to latest version of the plugin. Refer to [[:Plugins]] on how to install plugins manually.
+
+===== What's it for? =====
+
+This plugin will show thumbnail images for media files that are packages ZIP files containing a thumbnail image (ODT, DOCX, PPTX etc., but **not PDF**, yet) within your wiki pages. It will not generate any images, but look for an already embedded thumbnail within the document file, then show the thumbnail on your wiki page.
+
+In default settings, a click in the thumbnail will have your browser download the media file.
+
+And an error message will be shown by default in case a referenced media file does not contain a thumbnail. Or, more precisely: when the media file either does not exist, is not a zip file, or the configuration option `thumb_paths` does not point to a thumbnail file within a media file.
+
+===== Syntax =====
+
+<code>{{thumbnail>media_path_and_filename}}</code>
+
+Shows a thumbnail of the media file given via the string `media_path_and_filename` (standard file path for the [[:media_manager|Media Manager]]). This will only work, if a thumbnail image already has been saved within the file (which nowadays should be very common).
+
+In order to be able to show the thumbnail image, the image itself is stored within the media library alongside the media file. The filename of the thumbnail image will be the media file's namespace path and its name, concatenated by '.thumb' and the corresponding image file ending.
+
+The plugin watches file changes at the moment a wiki page is rendered. You might need to watch out for page caching!
+
+In case a media file is replaced by another file (with the same name), this will be noticed by timestamp comparison - the original thumbnail will be overwritten.
+
+**Example:** <code>{{thumbnail>main:media_namespace:presentation.pptx}}</code>
+
+This will show a thumbnail of the Powerpoint presentation in your wiki page. The thumbnail image will be stored within the media library as `main:media_namespace:presentation.pptx.thumb.jpeg` (because jpeg appears to be the format of thumbnail images within a PPTX file).
+
+===== Configuration and Settings =====
+
+//(compare: [[:devel:configuration#configuration_metadata|Configuration metadata]] for configuration classes)//
+
+^ **thumb_max_dimension** | Default width to set for a thumbnail (in pixels, enter without units). The thumbnail will have this size vertically or horizontally - in case the image is not quadratic, the other dimension will be smaller. ||
+| ::: | numeric, default: | **"100"** |
+^ **thumb_paths** | Paths within media files (format: ZIP) to look at for thumbnail images (comma-separated list, use slashes as directory delimiters). //Is defaulted for paths within ODT files and MS Office files, but can be extended in case of other formats.// ||
+| ::: | array, default: | **array("Thumbnails/thumbnail.png", "docProps/thumbnail.jpeg")** |
+^ **link_to_media_file** | Should a click on the thumbnail start the media file download? ||
+| ::: | onoff, default: | **true** |
+^ **show_no_thumb_error** | In case no thumbnail was found, do you want an error message be shown? |
+| ::: | onoff, default: | **true** |
+^ **no_thumb_error_message** | Error message to be shown when no thumbnail was found, and 'show_no_thumb_error' is set. Media path will automatically be appended! |
+| ::: | string, default: | **"No thumbnail in "** \\ //note: media path will automatically be appended// |
+
+===== Development =====
+
+[[https://github.com/ternite/dokuwiki-plugin-mediathumbnails|Sources]] on github.
+
+=== Change Log ===
+
+  * **2021-03-29**
+    * v0.81 (Initial release)
+
+=== Known Bugs and Issues ===
+
+See [[https://github.com/ternite/dokuwiki-plugin-mediathumbnails/issues|issue tracker]] on github.
+
+===== FAQ =====
+
+None, yet.
+
+===== Discussion =====
+
+//Thomas Schäfer (2021-03-29):// I wasn't able to locate a proper specification indicating the exact file locations for thumbnails within both OpenOffice/LibreOffice files, or MS Office files. In case you point me to such a specification, I might enhance the config settings for properly identifying thumbnails in more instances of such office documents.

@@ -11,6 +11,8 @@ if (!defined('DOKU_INC')) {
     die();
 }
 
+require('thumbnail.php');
+
 class syntax_plugin_mediathumbnails extends DokuWiki_Syntax_Plugin {
 	
 	/**
@@ -61,59 +63,12 @@ class syntax_plugin_mediathumbnails extends DokuWiki_Syntax_Plugin {
     {
 		// Locate the given media file and check if it can be opened as zip
 		$mediapath_file = substr($match, 12, -2); //strip markup
-		$filepath_local_file = mediaFN($mediapath_file);
-		$timestamp_local_file = file_exists($filepath_local_file) ? filemtime($filepath_local_file) : false;
 		
-		$zip = new ZipArchive;
-		if ($zip->open($filepath_local_file) !== TRUE) {
-			// media file does not exist
-			return array($mediapath_file);
+		$thumb = new thumbnail($mediapath_file,$this);
+		if ($thumb->create()) {
+			return array($mediapath_file,$thumb->getMediapath());
 		}
 		
-		// The media file exists and acts as a zip file!
-		
-		// Check all possible paths (configured in configuration key 'thumb_paths') if there is a file available
-		$thumb_paths_to_investigate = $this->getConf('thumb_paths');
-		
-		foreach($thumb_paths_to_investigate as $thumbnail_path) {
-			$thumbnail_ending = strrchr($thumbnail_path,'.');
-	
-			if ($zip->locateName($thumbnail_path) !== false) {
-						
-				// The thumbnail file exists, so prepare more information, now!
-				$extended_filename = basename($filepath_local_file) . ".thumb" . $thumbnail_ending;
-				$filepath_thumbnail = dirname($filepath_local_file) . DIRECTORY_SEPARATOR . $extended_filename;
-				$mediapath_thumbnail = substr($mediapath_file,0,strrpos($mediapath_file,':')) . ":" . $extended_filename;
-				
-				if (file_exists($filepath_thumbnail) && filemtime($filepath_thumbnail) == $timestamp_local_file) {
-					// A thumbnail file for the current file version has already been created, don't extract it again, but give the renderer all needed information!
-					return array($mediapath_file, $mediapath_thumbnail);
-				}
-				
-				// Get the thumbnail file!
-				$fp = $zip->getStream($thumbnail_path);
-				if(!$fp) {
-					return array();
-				}
-				
-				$thumbnaildata = '';
-				while (!feof($fp)) {
-					$thumbnaildata .= fread($fp, 8192);
-				}
-				
-				fclose($fp);
-				
-				// Write thumbnail file to media folder
-				file_put_contents($filepath_thumbnail, $thumbnaildata);
-				
-				// Set timestamp to the media file's timestamp (this is used to check in later passes if the file already exists in the correct version).
-				touch($filepath_thumbnail, $timestamp_local_file);
-				
-				// Give media path to renderer
-				return array($mediapath_file, $mediapath_thumbnail);
-			}
-		}
-
 		return array($mediapath_file);
     }
 
@@ -144,11 +99,11 @@ class syntax_plugin_mediathumbnails extends DokuWiki_Syntax_Plugin {
 				
 			$src = ml($mediapath_thumbnail,array());
 			
-			$i             = array();
-			$i['width']    = $this->getConf('thumb_width');
-			//$i['height']   = '';
-			$i['title']      = $mediapath_file;
-			$i['class']    = 'tn';
+			$i          = array();
+			
+			$i['title'] = $mediapath_file;
+			$i['style'] = "max-width:".$this->getConf('thumb_max_dimension')."px;max-height:".$this->getConf('thumb_max_dimension')."px";
+			
 			$iatt = buildAttributes($i);
 			
 			$renderer->doc .= 	($this->getConf('link_to_media_file') ? '<a href="/lib/exe/fetch.php?media=' . $mediapath_file . '">' : '') .
@@ -167,4 +122,3 @@ class syntax_plugin_mediathumbnails extends DokuWiki_Syntax_Plugin {
         return false;
     }
 }
-
