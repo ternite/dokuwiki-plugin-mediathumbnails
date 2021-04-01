@@ -98,7 +98,7 @@ class syntax_plugin_mediathumbnails extends DokuWiki_Syntax_Plugin {
 			$src = ml($mediapath_thumbnail,array());
 			
 			$i             = array();
-			$i['width']    = $this->getConf('thumb_width');
+			$i['width']    = $this->getConf('thumb_max_dimension'); //TODO: ausrichtung herausrechnen!
 			//$i['height']   = '';
 			$i['title']      = $mediapath_file;
 			$i['class']    = 'tn';
@@ -131,6 +131,7 @@ class thumbnail {
 	private $source_mediapath;
 	private ?thumb_engine $thumb_engine = null;
 	private $formats;
+	private int $max_dimension;
 	
 	public function __construct(string $source_filepath, DokuWiki_Syntax_Plugin $plugin, bool $ismediapath = true) {
 		
@@ -142,6 +143,8 @@ class thumbnail {
 			$this->source_filepath = $source_filepath;
 		}
 		
+		$this->max_dimension = $plugin->getConf('thumb_max_dimension');
+		
 		// determine file formats supported by ImageMagick
 		$this->formats = \Imagick::queryformats();
 		
@@ -150,14 +153,18 @@ class thumbnail {
 		$sourceFileSuffix = getFileSuffix($this->source_filepath);
 		if ($sourceFileSuffix == "pdf") {
 			// file suffix is pdf, so assume it's a PDF file
-			$this->thumb_engine = new thumb_pdf_engine($this,$plugin->getConf('thumb_width'));
+			$this->thumb_engine = new thumb_pdf_engine($this);
 		} else if (in_array(strtoupper($sourceFileSuffix), $this->formats)) {
 			// file suffix is in support list of ImageMagick
-			$this->thumb_engine = new thumb_img_engine($this,$plugin->getConf('thumb_width'));
+			$this->thumb_engine = new thumb_img_engine($this);
 		} else {
 			// last resort: check if the source file is a ZIP file and look for thumbnails, therein
-			$this->thumb_engine = new thumb_zip_engine($this,$plugin->getConf('thumb_width'),$plugin->getConf('thumb_paths'));
+			$this->thumb_engine = new thumb_zip_engine($this,$plugin->getConf('thumb_paths'));
 		}
+	}
+	
+	public function getMaxDimension() {
+		return $this->max_dimension;
 	}
 	
 	public function create() {
@@ -174,7 +181,7 @@ class thumbnail {
 	
 	protected function getFilename() {
 		
-		return basename($this->source_filepath) . ".thumb.".$this->thumb_engine->getFileSuffix();
+		return basename($this->source_filepath) . ".thumb".$this->max_dimension.".".$this->thumb_engine->getFileSuffix();
 	}
 	
 	public function getFilepath() {
@@ -197,11 +204,9 @@ class thumbnail {
 abstract class thumb_engine {
 	
 	private ?thumbnail $thumbnail = null;
-	private int $width;
 	
-	public function __construct(thumbnail $thumbnail, int $width) {
+	public function __construct(thumbnail $thumbnail) {
 		$this->thumbnail = $thumbnail;
-		$this->width = $width;
 	}
 	
 	protected function getSourceFilepath() {
@@ -212,8 +217,8 @@ abstract class thumb_engine {
 		return $this->thumbnail->getFilepath();
 	}
 	
-	protected function getTargetWidth() {
-		return $this->width;
+	protected function getTargetMaxDimension() {
+		return $this->thumbnail->getMaxDimension();
 	}
 	
 	public function act() {
@@ -245,12 +250,20 @@ class thumb_pdf_engine extends thumb_engine {
 	
 	public function act_internal() {
 		if ($this->thumb_needs_update()) {
-			$im = new imagick( $this->getSourceFilepath()."[0]" ); 
+			$im = new imagick($this->getSourceFilepath()."[0]"); 
 			$im->setImageColorspace(255); 
 			$im->setResolution(300, 300);
 			$im->setCompressionQuality(95); 
 			$im->setImageFormat('jpeg');
-			//$im->resizeImage(substr($this->getConf('thumb_width'),-2),0,imagick::FILTER_LANCZOS,0.9);
+			//$im->resizeImage($this->getTargetMaxDimension(),0,imagick::FILTER_LANCZOS,0.9);
+			//$im->thumbnailImage($this->getTargetMaxDimension(),$this->getTargetMaxDimension(),true,false);
+			$im->writeImage($this->getTargetFilepath());
+			$im->clear(); 
+			$im->destroy();
+			
+			// unfortunately, resizeImage or thumbnailImage leads to a black thumbnail in my setup, so I reopen the file and resize it now.
+			$im = new imagick($this->getTargetFilepath());
+			$im->thumbnailImage($this->getTargetMaxDimension(),$this->getTargetMaxDimension(),true,false);
 			$im->writeImage($this->getTargetFilepath());
 			$im->clear(); 
 			$im->destroy();
@@ -271,8 +284,7 @@ class thumb_img_engine extends thumb_engine {
 	public function act_internal() {
 		if ($this->thumb_needs_update()) {
 			$im = new imagick( $this->getSourceFilepath() );
-			//TODO: consider height?
-			$im->thumbnailImage($this->getTargetWidth(),$this->getTargetWidth(),true,false);
+			$im->thumbnailImage($this->getTargetMaxDimension(),$this->getTargetMaxDimension(),true,false);
 			$im->writeImage($this->getTargetFilepath());
 			$im->clear(); 
 			$im->destroy();
@@ -289,8 +301,8 @@ class thumb_zip_engine extends thumb_engine {
 	private array $thumb_paths;
 	private $file_suffix = "";
 	
-	public function __construct(thumbnail $thumbnail, int $width, array $thumb_paths) {
-		parent::__construct($thumbnail,$width);
+	public function __construct(thumbnail $thumbnail, array $thumb_paths) {
+		parent::__construct($thumbnail);
 		$this->thumb_paths = $thumb_paths;
 	}
 	
