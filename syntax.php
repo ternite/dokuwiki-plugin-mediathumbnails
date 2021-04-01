@@ -145,18 +145,47 @@ class thumbnail {
 		
 		$this->max_dimension = $plugin->getConf('thumb_max_dimension');
 		
-		// determine file formats supported by ImageMagick
-		$this->formats = \Imagick::queryformats();
+		// TODO: move support tests to a Singleton
+		$image_support = false;
+		$pdf_support = false;
+		if (class_exists ("Imagick")) {
+			// determine file formats supported by ImageMagick
+			$this->formats = \Imagick::queryformats();
+			
+			if (count($this->formats) > 0) {
+				$image_support = true;
+				if (in_array("PDF", $this->formats)) {
+					// Check if GhostScript will answer!
+					try {
+						$im = new imagick($this->source_filepath."[0]");
+						$im->clear(); 
+						$im->destroy();
+						$pdf_support = true;
+					} catch (ImagickException $e) {
+						//PDFDelegateFailed
+						$pdf_support = false;
+					}
+					
+				}
+			}
+			
+		}
 		
 		// Now attach the correct thumb_engine for the file type of the source file
 		//TODO: check for extension "fileinfo", then check for MIME type: if (mime_content_type($filepath_local_file) == "application/pdf") {
 		$sourceFileSuffix = getFileSuffix($this->source_filepath);
 		if ($sourceFileSuffix == "pdf") {
 			// file suffix is pdf, so assume it's a PDF file
-			$this->thumb_engine = new thumb_pdf_engine($this);
-		} else if (in_array(strtoupper($sourceFileSuffix), $this->formats)) {
+			if ($pdf_support) {
+				$this->thumb_engine = new thumb_pdf_engine($this);
+			} else {
+				dbg("plugin mediathumbnails: PDF files are supported, but not on this system.\nPlease refer to the plugin documentation for a description of the dependencies.");
+			}
+		} else if ($image_support && in_array(strtoupper($sourceFileSuffix), $this->formats)) {
 			// file suffix is in support list of ImageMagick
 			$this->thumb_engine = new thumb_img_engine($this);
+		} else if (!$image_support) {
+			dbg("plugin mediathumbnails: Image files are supported, but not on this system.\nPlease refer to the plugin documentation for a description of the dependencies.");
 		} else {
 			// last resort: check if the source file is a ZIP file and look for thumbnails, therein
 			$this->thumb_engine = new thumb_zip_engine($this,$plugin->getConf('thumb_paths'));
