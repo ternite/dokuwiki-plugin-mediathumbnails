@@ -151,7 +151,8 @@ class thumbnail {
 				if (in_array("PDF", self::$formats)) {
 					// Check if GhostScript will answer!
 					try {
-						$im = new imagick("D:\\SynologyPraxis\\Praxiswiki\\dokuwiki\\data\\media\\intern\\texbuch.pdf"."[0]");
+						// blank.pdf is an empty reference PDF file to test if GhostScript will react upon loading the file into ImageMagick
+						$im = new imagick(realpath("lib/plugins/mediathumbnails/blank.pdf")."[0]");
 						$im->clear(); 
 						$im->destroy();
 						self::$pdf_support = true;
@@ -197,8 +198,6 @@ class thumbnail {
 		}
 		
 		$this->max_dimension = $plugin->getConf('thumb_max_dimension');
-		
-		
 		
 		// Now attach the correct thumb_engine for the file type of the source file
 		//TODO: check for extension "fileinfo", then check for MIME type: if (mime_content_type($filepath_local_file) == "application/pdf") {
