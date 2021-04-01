@@ -82,7 +82,7 @@ class syntax_plugin_mediathumbnails extends DokuWiki_Syntax_Plugin {
     public function render($mode, Doku_Renderer $renderer, $data)
     {
 		list ($mediapath_file, $mediapath_thumbnail) = $data;
-
+		
         if ($mode == 'xhtml') {
 			
 			// check if a thumbnail file was found
@@ -121,11 +121,16 @@ class syntax_plugin_mediathumbnails extends DokuWiki_Syntax_Plugin {
     }
 }
 
+function getFileSuffix(string $file) {
+	return substr(strrchr($file,'.'),1);
+}
+
 class thumbnail {
 	
 	private $source_filepath;
 	private $source_mediapath;
 	private ?thumb_engine $thumb_engine = null;
+	private $formats;
 	
 	public function __construct(string $source_filepath, DokuWiki_Syntax_Plugin $plugin, bool $ismediapath = true) {
 		
@@ -137,13 +142,20 @@ class thumbnail {
 			$this->source_filepath = $source_filepath;
 		}
 		
+		// determine file formats supported by ImageMagick
+		$this->formats = \Imagick::queryformats();
+		
 		// Now attach the correct thumb_engine for the file type of the source file
 		//TODO: check for extension "fileinfo", then check for MIME type: if (mime_content_type($filepath_local_file) == "application/pdf") {
-		if (substr($this->source_filepath,-4) == ".pdf") {
+		$sourceFileSuffix = getFileSuffix($this->source_filepath);
+		if ($sourceFileSuffix == "pdf") {
+			// file suffix is pdf, so assume it's a PDF file
 			$this->thumb_engine = new thumb_pdf_engine($this,$plugin->getConf('thumb_width'));
-		} else if (substr($this->source_filepath,-4) == ".jpg") {
+		} else if (in_array(strtoupper($sourceFileSuffix), $this->formats)) {
+			// file suffix is in support list of ImageMagick
 			$this->thumb_engine = new thumb_img_engine($this,$plugin->getConf('thumb_width'));
 		} else {
+			// last resort: check if the source file is a ZIP file and look for thumbnails, therein
 			$this->thumb_engine = new thumb_zip_engine($this,$plugin->getConf('thumb_width'),$plugin->getConf('thumb_paths'));
 		}
 	}
@@ -253,8 +265,7 @@ class thumb_pdf_engine extends thumb_engine {
 class thumb_img_engine extends thumb_engine {
 	
 	public function getFileSuffix() {
-		$this->file_suffix = substr(strrchr($this->getSourceFilepath(),'.'),1);
-		return $this->file_suffix;
+		return getFileSuffix($this->getSourceFilepath());
 	}
 	
 	public function act_internal() {
