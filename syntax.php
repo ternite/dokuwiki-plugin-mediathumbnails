@@ -141,6 +141,8 @@ class thumbnail {
 		//TODO: check for extension "fileinfo", then check for MIME type: if (mime_content_type($filepath_local_file) == "application/pdf") {
 		if (substr($this->source_filepath,-4) == ".pdf") {
 			$this->thumb_engine = new thumb_pdf_engine($this,$plugin->getConf('thumb_width'));
+		} else if (substr($this->source_filepath,-4) == ".jpg") {
+			$this->thumb_engine = new thumb_img_engine($this,$plugin->getConf('thumb_width'));
 		} else {
 			$this->thumb_engine = new thumb_zip_engine($this,$plugin->getConf('thumb_width'),$plugin->getConf('thumb_paths'));
 		}
@@ -215,7 +217,7 @@ abstract class thumb_engine {
 	
 	// Checks if a thumbnail file for the current file version has already been created
 	protected function thumb_needs_update() {
-		return file_exists($this->getTargetFilepath()) && filemtime($this->getTargetFilepath()) !== filemtime($this->getSourceFilepath());
+		return !file_exists($this->getTargetFilepath()) || filemtime($this->getTargetFilepath()) !== filemtime($this->getSourceFilepath());
 	}
 	
 	public abstract function act_internal();
@@ -237,6 +239,29 @@ class thumb_pdf_engine extends thumb_engine {
 			$im->setCompressionQuality(95); 
 			$im->setImageFormat('jpeg');
 			//$im->resizeImage(substr($this->getConf('thumb_width'),-2),0,imagick::FILTER_LANCZOS,0.9);
+			$im->writeImage($this->getTargetFilepath());
+			$im->clear(); 
+			$im->destroy();
+			
+			return true;
+		} else {
+			return true;
+		}
+	}
+}
+
+class thumb_img_engine extends thumb_engine {
+	
+	public function getFileSuffix() {
+		$this->file_suffix = substr(strrchr($this->getSourceFilepath(),'.'),1);
+		return $this->file_suffix;
+	}
+	
+	public function act_internal() {
+		if ($this->thumb_needs_update()) {
+			$im = new imagick( $this->getSourceFilepath() );
+			//TODO: consider height?
+			$im->thumbnailImage($this->getTargetWidth(),$this->getTargetWidth(),true,false);
 			$im->writeImage($this->getTargetFilepath());
 			$im->clear(); 
 			$im->destroy();
