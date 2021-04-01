@@ -130,8 +130,61 @@ class thumbnail {
 	private $source_filepath;
 	private $source_mediapath;
 	private ?thumb_engine $thumb_engine = null;
-	private $formats;
 	private int $max_dimension;
+	
+	private static $formats;
+	private static ?bool $pdf_support = null;
+	private static ?bool $image_support = null;
+	private static ?bool $no_ghostscript_support = null;
+	
+	private static function testDependencies() {
+		// TODO: move support tests to a Singleton
+		self::$image_support = false;
+		self::$pdf_support = false;
+		self::$no_ghostscript_support = false;
+		if (class_exists ("Imagick")) {
+			// determine file formats supported by ImageMagick
+			self::$formats = \Imagick::queryformats();
+			
+			if (count(self::$formats) > 0) {
+				self::$image_support = true;
+				if (in_array("PDF", self::$formats)) {
+					// Check if GhostScript will answer!
+					try {
+						$im = new imagick("D:\\SynologyPraxis\\Praxiswiki\\dokuwiki\\data\\media\\intern\\texbuch.pdf"."[0]");
+						$im->clear(); 
+						$im->destroy();
+						self::$pdf_support = true;
+					} catch (ImagickException $e) {
+						if (strpos($e,"PDFDelegateFailed") !== false) {
+							self::$no_ghostscript_support = true;
+						}
+						self::$pdf_support = false;
+					}
+					
+				}
+			}
+			
+		}
+	}
+	public static function supportsPDF() {
+		if (self::$pdf_support === null) {
+			self::testDependencies();
+		}
+		return self::$pdf_support;
+	}
+	public static function supportsImages() {
+		if (self::$image_support === null) {
+			self::testDependencies();
+		}
+		return self::$image_support;
+	}
+	public static function ghostScriptFailed() {
+		if (self::$no_ghostscript_support === null) {
+			self::testDependencies();
+		}
+		return self::$no_ghostscript_support;
+	}
 	
 	public function __construct(string $source_filepath, DokuWiki_Syntax_Plugin $plugin, bool $ismediapath = true) {
 		
@@ -145,53 +198,26 @@ class thumbnail {
 		
 		$this->max_dimension = $plugin->getConf('thumb_max_dimension');
 		
-		// TODO: move support tests to a Singleton
-		$image_support = false;
-		$pdf_support = false;
-		$no_ghostscript = false;
-		if (class_exists ("Imagick")) {
-			// determine file formats supported by ImageMagick
-			$this->formats = \Imagick::queryformats();
-			
-			if (count($this->formats) > 0) {
-				$image_support = true;
-				if (in_array("PDF", $this->formats)) {
-					// Check if GhostScript will answer!
-					try {
-						$im = new imagick($this->source_filepath."[0]");
-						$im->clear(); 
-						$im->destroy();
-						$pdf_support = true;
-					} catch (ImagickException $e) {
-						if (strpos($e,"PDFDelegateFailed") !== false) {
-							$no_ghostscript = true;
-						}
-						$pdf_support = false;
-					}
-					
-				}
-			}
-			
-		}
+		
 		
 		// Now attach the correct thumb_engine for the file type of the source file
 		//TODO: check for extension "fileinfo", then check for MIME type: if (mime_content_type($filepath_local_file) == "application/pdf") {
 		$sourceFileSuffix = getFileSuffix($this->source_filepath);
 		if ($sourceFileSuffix == "pdf") {
 			// file suffix is pdf, so assume it's a PDF file
-			if ($pdf_support) {
+			if (self::supportsPDF()) {
 				$this->thumb_engine = new thumb_pdf_engine($this);
 			} else {
-				if ($no_ghostscript) {
+				if (self::ghostScriptFailed()) {
 					dbg("plugin mediathumbnails: PDF files are supported, but not on this system.\nMost likely, ImageMagick and its PHP extension imagick are installed properly, but GhostScript is not.\nPlease refer to the plugin documentation for a description of the dependencies.");
 				} else {
 					dbg("plugin mediathumbnails: PDF files are supported, but not on this system.\nMost likely, ImageMagick or its PHP extension imagick are not installed properly.\nPlease refer to the plugin documentation for a description of the dependencies.");
 				}
 			}
-		} else if ($image_support && in_array(strtoupper($sourceFileSuffix), $this->formats)) {
+		} else if (self::supportsImages() && in_array(strtoupper($sourceFileSuffix), self::$formats)) {
 			// file suffix is in support list of ImageMagick
 			$this->thumb_engine = new thumb_img_engine($this);
-		} else if (!$image_support) {
+		} else if (!self::supportsImages()) {
 			dbg("plugin mediathumbnails: Image files are supported, but not on this system.\nPlease refer to the plugin documentation for a description of the dependencies.");
 		} else {
 			// last resort: check if the source file is a ZIP file and look for thumbnails, therein
