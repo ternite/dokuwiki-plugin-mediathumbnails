@@ -5,14 +5,14 @@ description: Extracts a thumbnail from media files (ODT, DOCX, PPTX, PDF, JPG, e
 author     : Thomas Schäfer
 email      : thomas@hilbershome.de 
 type       : syntax
-lastupdate : 2021-04-02
+lastupdate : 2021-05-24
 compatible : 2020-07-29 "Hogfather"
 depends    : 
 conflicts  : 
 similar    : 
-tags       : images, media
+tags       : images, media, mediamanager, thumbnail, odt, pdf
 
-downloadurl: https://github.com/ternite/dokuwiki-plugin-mediathumbnails/archive/v0.91.zip
+downloadurl: https://github.com/ternite/dokuwiki-plugin-mediathumbnails/archive/v0.92.zip
 bugtracker : hhttps://github.com/ternite/dokuwiki-plugin-mediathumbnails/issues
 sourcerepo : https://github.com/ternite/dokuwiki-plugin-mediathumbnails
 donationurl: 
@@ -26,13 +26,26 @@ Install the plugin using the [[plugin:plugin|Plugin Manager]] and the download U
 
 :!: **External requirements:** Office files (ODT, DOCX, PPTX, etc.) are supported natively. If you need image or PDF support, this plugin requires the following additional components that must be installed and integrated into your PHP environment separately: 
 
-  * [[https://imagemagick.org|ImageMagick]] //(obligatory for both image and PDF support)//
-  * [[https://github.com/Imagick/imagick|Imagick]] (PHP extension for ImageMagick integration) //(obligatory for both image and PDF support)//
-  * [[https://www.ghostscript.com/index.html|GhostScript]] //(obligatory for PDF support)//
+  * Support for Office file thumbnails:
+    * [[https://www.php.net/manual/de/book.zip.php|zip]] PHP extension
+    * libzip-dev (needed by zip) - your installation might already have this installed, or not.
+  * Support for PDF and image thumbnails:
+    * [[https://imagemagick.org|ImageMagick]]
+    * [[https://github.com/Imagick/imagick|Imagick]] (PHP extension for ImageMagick integration) 
+    * [[https://www.ghostscript.com/index.html|GhostScript]] //(obligatory only for PDF support)//
 
 Hints:
-  * Installation on Windows were troublesome for me. The best description of how to install ImageMagick and Imagick was: [[https://tektriks.com/a-step-by-step-guide-on-how-to-install-imagemagick-in-windows/|A step by step guide on how to install ImageMagick in Windows]].
-  * Concerning the installation of GhostScript: despite all my efforts to wed GhostScript to ImageMagick via configuration failed. I finally added GhostScripts `bin` folder to the System Environment PATH variable (which is ok) and then I renamed `gswin32c.exe` to `gs.exe` (then I made my donut suffer for it).
+  * Installation on Windows was troublesome for me. The best description of how to install ImageMagick and Imagick was: [[https://mlocati.github.io/articles/php-windows-imagick.html|Install the ImageMagick PHP extension in Windows]] by [[https://github.com/mlocati|Michele Locati]].
+    * It does not cover the installation process of ImageMagick, but the correct destribution archive is linked along with the matching PHP extension!
+    * In addition to the description on Michele's page, I added ImageMagick's bin folder to my systems' PATH variable and to a variable named MAGICK_HOME.
+  * Concerning the installation of GhostScript: despite all my efforts, wedding GhostScript to ImageMagick via configuration failed. I finally added GhostScript's `bin` folder to the System Environment PATH variable (which is ok) and then I renamed `gswin32c.exe` to `gs.exe` (then I made my donut suffer for it).
+  * You might run into a case where ImageMagick, Imagick and Ghostscript are properly installed, but no PDF file thumbnail is created. (In that case, you should get a proper error message if you activated //allowdebug// in your dokuwiki config.) This may be due to a security policy defined in ImageMagick's `policy.xml`. Look for the following entry, then change the //rights// attribute to the value `read|write`:
+  
+<code><policy domain="coder" rights="none" pattern="PDF" /></code>
+  
+...should become...
+  
+<code><policy domain="coder" rights="read|write" pattern="PDF" /></code>
 
 ===== What's it for? =====
 
@@ -116,6 +129,8 @@ If your PDF and/or image thumbnails don't show up, consider activating the `allo
   * **2021-04-02**
     * v0.91 (added image and PDF support)
       * config option `thumb_width` was dropped, so you might want to delete that entry from `conf/local.php` if you upgraded from v0.81 and had altered that value
+  * **2021-05-24**
+    * v0.92 (Added checks for ImageMagick security policy issues)
 
 === Known Bugs and Issues ===
 
