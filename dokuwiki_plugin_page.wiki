@@ -47,6 +47,27 @@ Hints:
   
 <code><policy domain="coder" rights="read|write" pattern="PDF" /></code>
 
+  * I also wrote a Dockerfile that takes care of the modules to be installed, and makes config adjustments within ImageMagick. It may help you in case you're using Docker:
+
+<code>
+FROM php:7-fpm
+
+RUN apt-get update && apt-get install -y \
+    imagemagick libmagickwand-dev \
+    libzip-dev \
+    libgs-dev \
+    ghostscript --no-install-recommends \
+    && pecl install imagick \
+    && docker-php-ext-enable imagick \
+    && pecl install zip \
+    && docker-php-ext-enable zip
+
+# Adjust ImageMagick security policy to allow PDF conversion
+ARG imagemagic_config=/etc/ImageMagick-*/policy.xml
+
+RUN if [ -f $imagemagic_config ] ; then sed -i 's/<policy domain="coder" rights="none" pattern="PDF" \/>/<policy domain="coder" rights="read|write" pattern="PDF" \/>/g' $imagemagic_config ; else echo did not see file $imagemagic_config ; fi
+</code>
+
 ===== What's it for? =====
 
 This plugin will show thumbnail images for supported media files (ODT, DOCX, PPTX, PDF, JPG, etc.) within your wiki pages.
