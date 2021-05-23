@@ -23,12 +23,14 @@ class thumbnail {
 	private static ?bool $pdf_support = null;
 	private static ?bool $image_support = null;
 	private static ?bool $no_ghostscript_support = null;
+	private static ?bool $no_imagick_pdf_readwrite = null;
 	
 	private static function testDependencies() {
 		
 		self::$image_support = false;
 		self::$pdf_support = false;
 		self::$no_ghostscript_support = false;
+		self::$no_imagick_pdf_readwrite = false;
 		
 		if (class_exists ("Imagick")) {
 			// determine file formats supported by ImageMagick
@@ -47,6 +49,9 @@ class thumbnail {
 					} catch (ImagickException $e) {
 						if (strpos($e,"PDFDelegateFailed") !== false) {
 							self::$no_ghostscript_support = true;
+						}
+						if (strpos($e,"security policy") !== false) {
+							self::$no_imagick_pdf_readwrite = true;
 						}
 						self::$pdf_support = false;
 					}
@@ -74,6 +79,12 @@ class thumbnail {
 		}
 		return self::$no_ghostscript_support;
 	}
+	public static function imagickPDFpolicyFailed() {
+		if (self::$no_imagick_pdf_readwrite === null) {
+			self::testDependencies();
+		}
+		return self::$no_imagick_pdf_readwrite;
+	}
 	
 	public function __construct(string $source_filepath, DokuWiki_Syntax_Plugin $plugin, bool $ismediapath = true) {
 		
@@ -97,6 +108,8 @@ class thumbnail {
 			} else {
 				if (self::ghostScriptFailed()) {
 					dbg("plugin mediathumbnails: PDF files are supported, but not on this system.\nMost likely, ImageMagick and its PHP extension imagick are installed properly, but GhostScript is not.\nPlease refer to the plugin documentation for a description of the dependencies.");
+				} else if(self::imagickPDFpolicyFailed()) {
+					dbg("plugin mediathumbnails: PDF files are supported, but not on this system.\nMost likely, ImageMagick is configured so that PDF conversion is not allowed due to security policies.\nPlease refer to the plugin documentation for a description of the dependencies.");
 				} else {
 					dbg("plugin mediathumbnails: PDF files are supported, but not on this system.\nMost likely, ImageMagick or its PHP extension imagick are not installed properly.\nPlease refer to the plugin documentation for a description of the dependencies.");
 				}
