@@ -20,6 +20,14 @@ donationurl:
 screenshot_img : 
 ----
 
+===== What's it for? =====
+
+This plugin will show thumbnail images for supported media files (ODT, DOCX, PPTX, PDF, JPG, etc.) within your wiki pages.
+
+In default settings, a click in the thumbnail will have your browser download the media file.
+
+And an error message will be shown by default in case a referenced media file does not contain a thumbnail (office files) or is an unsupported file type (see dependencies on how you might work around that).
+
 ===== Installation and Dependencies =====
 
 Install the plugin using the [[plugin:plugin|Plugin Manager]] and the download URL above, which points to latest version of the plugin. Refer to [[:Plugins]] on how to install plugins manually.
@@ -35,19 +43,20 @@ Install the plugin using the [[plugin:plugin|Plugin Manager]] and the download U
     * [[https://www.ghostscript.com/index.html|GhostScript]] //(obligatory only for PDF support)//
 
 Hints:
-  * Installation on Windows was troublesome for me. The best description of how to install ImageMagick and Imagick was: [[https://mlocati.github.io/articles/php-windows-imagick.html|Install the ImageMagick PHP extension in Windows]] by [[https://github.com/mlocati|Michele Locati]].
-    * It does not cover the installation process of ImageMagick, but the correct destribution archive is linked along with the matching PHP extension!
-    * In addition to the description on Michele's page, I added ImageMagick's bin folder to my systems' PATH variable and to a variable named MAGICK_HOME.
-  * Concerning the installation of GhostScript: despite all my efforts, wedding GhostScript to ImageMagick via configuration failed. I finally added GhostScript's `bin` folder to the System Environment PATH variable (which is ok) and then I renamed `gswin32c.exe` to `gs.exe` (then I made my donut suffer for it).
-  * You might run into a case where ImageMagick, Imagick and Ghostscript are properly installed, but no PDF file thumbnail is created. (In that case, you should get a proper error message if you activated //allowdebug// in your dokuwiki config.) This may be due to a security policy defined in ImageMagick's `policy.xml`. Look for the following entry, then change the //rights// attribute to the value `read|write`:
-  
-<code><policy domain="coder" rights="none" pattern="PDF" /></code>
-  
-...should become...
-  
-<code><policy domain="coder" rights="read|write" pattern="PDF" /></code>
-
-  * I also wrote a Dockerfile that takes care of the modules to be installed, and makes config adjustments within ImageMagick. It may help you in case you're using Docker:
+  * My installation routine on Windows 10 x64 in detail:
+    * Install ''Ghostscript 9.56.1'' ([[https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs9561/gs9561w64.exe|gs9561w64.exe]]).
+	  * Ascertain that GS's ''bin'' folder was added to the System PATH variable.
+	* Install ''ImageMagick 7.1.0'' for x64 ([[https://windows.php.net/downloads/pecl/deps/ImageMagick-7.1.0-18-vc15-x64.zip|ImageMagick-7.1.0-18-vc15-x64.zip]]) by executing the following steps:
+	  * Extract the ZIP's content to ''C:\Program Files\ImageMagick-7.1.0-18-vc15-x64''.
+	  * Add ''C:\Program Files\ImageMagick-7.1.0-18-vc15-x64\bin'' to the System PATH variable manually.
+	  * Open ''C:\Program Files\ImageMagick-7.1.0-18-vc15-x64\bin\policy.xml'' and either add the following line within ''<policymap>..</policymap>'': ''<policy domain="coder" rights="read|write" pattern="PDF" />. If a similar line containing domain ''coder'' and pattern ''PDF'' already exists, change it accordingly.
+	* Install ''ImageMagick PHP extension'' ([[https://windows.php.net/downloads/pecl/releases/imagick/3.7.0/php_imagick-3.7.0-7.4-ts-vc15-x64.zip|php_imagick-3.7.0-7.4-ts-vc15-x64.zip]]) by executing the following steps:
+	  * Extract all ''CORE_RL_*'', ''FILTER_*'' and ''IM_MOD_RL_*'' from the ZIP's content to ''C:\Program Files\ImageMagick-7.1.0-18-vc15-x64\bin''. Accept overwriting all files that may already be present there. Yes, that's the binaries folder of the ImageMagick installation.
+	  * Extract ''php_imagick.dll'' to ''{PATH_TO}\php\ext''.
+	  * Open ''{PATH_TO}\php\php.ini'' and add a line ''extension=imagick''. If using earlier versions of the software involved, you may have to try a combination like ''php_imagick'', ''imagick.dll'', ''php_imagick.dll''.
+	* Don't forget to restart the webserver.
+  * If you want or have to install another version, this might be a useful resource: [[https://mlocati.github.io/articles/php-windows-imagick.html|Install the ImageMagick PHP extension in Windows]] by [[https://github.com/mlocati|Michele Locati]]. It helps you identify the correct version of php_imagick in relation to your PHP installation. Formerly, you also got a download link for the appropriate version of ImageMagick, but the version of this page I visited today appears to not do that anymore.
+  * I also wrote a Dockerfile (for an earlier installation / version constellation) that takes care of the modules to be installed, and makes config adjustments within ImageMagick (only works if the policy domain ''coder'' is predefined in ''policy.xml'' - it's not in the recent versions I came accross). It may help you nevertheless, in case you're using Docker:
 
 <code>
 FROM php:7-fpm
@@ -67,14 +76,6 @@ ARG imagemagic_config=/etc/ImageMagick-*/policy.xml
 
 RUN if [ -f $imagemagic_config ] ; then sed -i 's/<policy domain="coder" rights="none" pattern="PDF" \/>/<policy domain="coder" rights="read|write" pattern="PDF" \/>/g' $imagemagic_config ; else echo did not see file $imagemagic_config ; fi
 </code>
-
-===== What's it for? =====
-
-This plugin will show thumbnail images for supported media files (ODT, DOCX, PPTX, PDF, JPG, etc.) within your wiki pages.
-
-In default settings, a click in the thumbnail will have your browser download the media file.
-
-And an error message will be shown by default in case a referenced media file does not contain a thumbnail (office files) or is an unsupported file type (see dependencies on how you might work around that).
 
 ===== Syntax =====
 
