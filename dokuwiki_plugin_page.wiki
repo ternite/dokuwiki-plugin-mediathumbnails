@@ -5,14 +5,14 @@ description: Extracts a thumbnail from media files (ODT, DOCX, PPTX, PDF, JPG, e
 author     : Thomas Schäfer
 email      : thomas@hilbershome.de 
 type       : syntax
-lastupdate : 2021-05-24
-compatible : Hogfather, Igor
+lastupdate : 2025-09-03
+compatible : Hogfather, Igor, Jack Jackrum, Kaos
 depends    : 
 conflicts  : 
 similar    : 
 tags       : images, media, mediamanager, thumbnail, odt, pdf
 
-downloadurl: https://github.com/ternite/dokuwiki-plugin-mediathumbnails/archive/v0.92.zip
+downloadurl: https://github.com/ternite/dokuwiki-plugin-mediathumbnails/archive/v0.93.zip
 bugtracker : hhttps://github.com/ternite/dokuwiki-plugin-mediathumbnails/issues
 sourcerepo : https://github.com/ternite/dokuwiki-plugin-mediathumbnails
 donationurl: 
@@ -81,7 +81,13 @@ RUN if [ -f $imagemagic_config ] ; then sed -i 's/<policy domain="coder" rights=
 
 <code>{{thumbnail>media_path_and_filename}}</code>
 
+or:
+
+<code>{{thumbnail>media_path_and_filename|caption}}</code>
+
 Shows a thumbnail of the media file given via the string `media_path_and_filename` (standard file path for the [[:media_manager|Media Manager]]). In case of an office file (ODT, DOCX, PPTX, etc.), this will only work, if a thumbnail image already has been saved within the file (which nowadays should be very common).
+
+If a caption is provided, this text will be used as 'title' of the resulting <img> element.
 
 In order to be able to show the thumbnail image, the image itself is stored within the media library alongside the media file (see [[#Implementation Details|Implementation Details]]).
 
@@ -153,6 +159,8 @@ If your PDF and/or image thumbnails don't show up, consider activating the `allo
       * config option `thumb_width` was dropped, so you might want to delete that entry from `conf/local.php` if you upgraded from v0.81 and had altered that value
   * **2021-05-24**
     * v0.92 (Added checks for ImageMagick security policy issues)
+  * **2025-09-03**
+    * v0.93 (Added compatibility with pipe syntax - so setting a caption will show a popup title for the image)
 
 === Known Bugs and Issues ===
 
