@@ -62,7 +62,12 @@ class syntax_plugin_mediathumbnails extends DokuWiki_Syntax_Plugin {
     public function handle($match, $state, $pos, Doku_Handler $handler)
     {
 		// Locate the given media file and check if it can be opened as zip
-		$mediapath_file = substr($match, 12, -2); //strip markup
+		$documenttype_command = substr($match, 12, -2); //strip markup
+        
+        // if the command is using a pipe separator, the mediapath file must be extracted. As of now, the text behind the pipe will be ignored!
+        $params = explode("|", $documenttype_command);
+        
+        $mediapath_file = $params[0];
 		
 		$thumb = new thumbnail($mediapath_file,$this);
 		if ($thumb->create()) {
