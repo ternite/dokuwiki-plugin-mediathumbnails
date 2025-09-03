@@ -68,10 +68,16 @@ class syntax_plugin_mediathumbnails extends DokuWiki_Syntax_Plugin {
         $params = explode("|", $documenttype_command);
         
         $mediapath_file = $params[0];
+        
+        $caption = $mediapath_file;
+        
+        if (sizeof($params) > 1) {
+            $caption = $params[1];
+        }
 		
 		$thumb = new thumbnail($mediapath_file,$this);
 		if ($thumb->create()) {
-			return array($mediapath_file,$thumb->getMediapath());
+			return array($mediapath_file,$thumb->getMediapath(),$caption);
 		}
 		
 		return array($mediapath_file);
@@ -88,7 +94,7 @@ class syntax_plugin_mediathumbnails extends DokuWiki_Syntax_Plugin {
      */
     public function render($mode, Doku_Renderer $renderer, $data)
     {
-		list ($mediapath_file, $mediapath_thumbnail) = $data;
+		list ($mediapath_file, $mediapath_thumbnail, $caption) = $data;
 		
         if ($mode == 'xhtml') {
 			
@@ -112,7 +118,7 @@ class syntax_plugin_mediathumbnails extends DokuWiki_Syntax_Plugin {
 			$iatt = buildAttributes($i);
 			
 			$renderer->doc .= 	($this->getConf('link_to_media_file') ? '<a href="/lib/exe/fetch.php?media=' . $mediapath_file . '">' : '') .
-								'<img src="'.$src.'" '.$iatt.' />' .
+								'<img src="'.$src.'" title="'.$caption.'" '.$iatt.' />' .
 								($this->getConf('link_to_media_file') ? '</a>' : '');
             return true;
 			
