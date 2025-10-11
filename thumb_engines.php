@@ -55,8 +55,10 @@ class thumb_pdf_engine extends thumb_engine {
 	
 	public function act_internal() {
 		if ($this->thumb_needs_update()) {
-			$im = new imagick($this->getSourceFilepath()."[0]"); 
-			$im->setImageColorspace(255); 
+			$im = new imagick($this->getSourceFilepath()."[0]");
+            // the following line was in the original code. Issue #6 (https://github.com/ternite/dokuwiki-plugin-mediathumbnails/issues/6)
+            // indicated there might be problems with colors, so I uncommented the line (TS, 2025-10-11)
+			//$im->setImageColorspace(255); 
 			$im->setResolution(300, 300);
 			$im->setCompressionQuality(95); 
 			$im->setImageFormat('jpeg');
