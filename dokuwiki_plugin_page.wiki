@@ -5,14 +5,14 @@ description: Extracts a thumbnail from media files (ODT, DOCX, PPTX, PDF, JPG, e
 author     : Thomas Schäfer
 email      : thomas@hilbershome.de 
 type       : syntax
-lastupdate : 2025-09-03
-compatible : Hogfather, Igor, Jack Jackrum, Kaos
+lastupdate : 2025-10-11
+compatible : Hogfather, Igor, Jack Jackrum, Kaos, Librarian
 depends    : 
 conflicts  : 
 similar    : 
 tags       : images, media, mediamanager, thumbnail, odt, pdf
 
-downloadurl: https://github.com/ternite/dokuwiki-plugin-mediathumbnails/archive/v0.93.zip
+downloadurl: https://github.com/ternite/dokuwiki-plugin-mediathumbnails/archive/v0.94.zip
 bugtracker : hhttps://github.com/ternite/dokuwiki-plugin-mediathumbnails/issues
 sourcerepo : https://github.com/ternite/dokuwiki-plugin-mediathumbnails
 donationurl: 
