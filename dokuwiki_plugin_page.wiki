@@ -161,6 +161,8 @@ If your PDF and/or image thumbnails don't show up, consider activating the `allo
     * v0.92 (Added checks for ImageMagick security policy issues)
   * **2025-09-03**
     * v0.93 (Added compatibility with pipe syntax - so setting a caption will show a popup title for the image)
+  * **2025-10-11**
+    * v0.94 (Resolved an issue with the color space of generated thumbnails)
 
 === Known Bugs and Issues ===
 
