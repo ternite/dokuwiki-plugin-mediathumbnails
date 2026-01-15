@@ -5,14 +5,14 @@ description: Extracts a thumbnail from media files (ODT, DOCX, PPTX, PDF, JPG, e
 author     : Thomas Schäfer
 email      : thomas@hilbershome.de 
 type       : syntax
-lastupdate : 2025-10-11
+lastupdate : 2026-01-15
 compatible : Hogfather, Igor, Jack Jackrum, Kaos, Librarian
 depends    : 
 conflicts  : 
 similar    : 
 tags       : images, media, mediamanager, thumbnail, odt, pdf
 
-downloadurl: https://github.com/ternite/dokuwiki-plugin-mediathumbnails/archive/v0.94.zip
+downloadurl: https://github.com/ternite/dokuwiki-plugin-mediathumbnails/archive/v0.95.zip
 bugtracker : hhttps://github.com/ternite/dokuwiki-plugin-mediathumbnails/issues
 sourcerepo : https://github.com/ternite/dokuwiki-plugin-mediathumbnails
 donationurl: 
@@ -163,6 +163,8 @@ If your PDF and/or image thumbnails don't show up, consider activating the `allo
     * v0.93 (Added compatibility with pipe syntax - so setting a caption will show a popup title for the image)
   * **2025-10-11**
     * v0.94 (Resolved an issue with the color space of generated thumbnails)
+  * **2026-01-15**
+    * v0.95 (If the source media file does not exists, the plugin now shows an error message instead of running into an unhandled exception)
 
 === Known Bugs and Issues ===
 

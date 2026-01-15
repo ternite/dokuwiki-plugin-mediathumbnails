@@ -1,7 +1,7 @@
 base   mediathumbnails
 author Thomas Schäfer
 email  thomas@hilbershome.de
-date   2025-10-11
+date   2026-01-15
 name   mediathumbnails plugin
 desc   Extracts a thumbnail from media files (ODT, DOCX, PPTX, PDF, JPG, etc.) in a media library and shows it on the wiki page.
 url    https://www.dokuwiki.org/plugin:mediathumbnails
