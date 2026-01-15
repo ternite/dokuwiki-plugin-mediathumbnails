@@ -55,6 +55,10 @@ class thumb_pdf_engine extends thumb_engine {
 	
 	public function act_internal() {
 		if ($this->thumb_needs_update()) {
+			//if file does not exist
+			if (!file_exists($this->getSourceFilepath())) {
+				return false;
+			}
 			$im = new imagick($this->getSourceFilepath()."[0]");
             // the following line was in the original code. Issue #6 (https://github.com/ternite/dokuwiki-plugin-mediathumbnails/issues/6)
             // indicated there might be problems with colors, so I uncommented the line (TS, 2025-10-11)

@@ -76,11 +76,17 @@ class syntax_plugin_mediathumbnails extends DokuWiki_Syntax_Plugin {
         }
 		
 		$thumb = new thumbnail($mediapath_file,$this);
+
+        // if source file does not exist, return an array with the first element being null
+        if (!$thumb->getSourceFileExists()) {
+            return array(null,$mediapath_file,null);
+        }
+
 		if ($thumb->create()) {
 			return array($mediapath_file,$thumb->getMediapath(),$caption);
 		}
 		
-		return array($mediapath_file);
+		return array($mediapath_file,null,null);
     }
 
     /**
@@ -97,6 +103,16 @@ class syntax_plugin_mediathumbnails extends DokuWiki_Syntax_Plugin {
 		list ($mediapath_file, $mediapath_thumbnail, $caption) = $data;
 		
         if ($mode == 'xhtml') {
+
+            // check if media source file exists
+			if (is_null($mediapath_file)) {
+				if ($this->getConf('show_missing_thumb_error')) {
+					$renderer->doc .= trim($this->getConf('no_media_error_message')) . " " . $mediapath_thumbnail;
+					return true;
+				} else {
+					return false;
+				}
+			}
 			
 			// check if a thumbnail file was found
 			if (!$mediapath_thumbnail) {

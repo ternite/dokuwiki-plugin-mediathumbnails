@@ -24,6 +24,7 @@ class thumbnail {
 	private static ?bool $image_support = null;
 	private static ?bool $no_ghostscript_support = null;
 	private static ?bool $no_imagick_pdf_readwrite = null;
+	private static ?string $dependency_problem = null;
 	
 	private static function testDependencies() {
 		
@@ -31,6 +32,7 @@ class thumbnail {
 		self::$pdf_support = false;
 		self::$no_ghostscript_support = false;
 		self::$no_imagick_pdf_readwrite = false;
+		self::$dependency_problem = null;
 		
 		if (class_exists ("Imagick")) {
 			// determine file formats supported by ImageMagick
@@ -54,11 +56,17 @@ class thumbnail {
 							self::$no_imagick_pdf_readwrite = true;
 						}
 						self::$pdf_support = false;
+						self::$dependency_problem = "Catched ImagickException: ".$e->getMessage();
 					}
-					
+				} else {
+					self::$dependency_problem = "Imagick reports it does not support PDF files.";
 				}
+			} else {
+				self::$dependency_problem = "Imagick reports it doesn't support any output formats.";
 			}
 			
+		} else {
+			self::$dependency_problem = "Imagick class not found: ImageMagick PHP extension is not installed.";
 		}
 	}
 	public static function supportsPDF() {
@@ -106,12 +114,15 @@ class thumbnail {
 			if (self::supportsPDF()) {
 				$this->thumb_engine = new thumb_pdf_engine($this);
 			} else {
+				
+				$hint = self::$dependency_problem ? "  Hint: '".self::$dependency_problem."'\n" : "";
+
 				if (self::ghostScriptFailed()) {
-					dbg("plugin mediathumbnails: PDF files are supported, but not on this system.\nMost likely, ImageMagick and its PHP extension imagick are installed properly, but GhostScript is not.\nPlease refer to the plugin documentation for a description of the dependencies.");
+					dbg("plugin mediathumbnails: PDF files are supported, but not on this system.\nMost likely, ImageMagick and its PHP extension imagick are installed properly, but GhostScript is not.\n".$hint."Please refer to the plugin documentation for a description of the dependencies. ".self::$dependency_problem);
 				} else if(self::imagickPDFpolicyFailed()) {
-					dbg("plugin mediathumbnails: PDF files are supported, but not on this system.\nMost likely, ImageMagick is configured so that PDF conversion is not allowed due to security policies.\nPlease refer to the plugin documentation for a description of the dependencies.");
+					dbg("plugin mediathumbnails: PDF files are supported, but not on this system.\nMost likely, ImageMagick is configured so that PDF conversion is not allowed due to security policies.\n".$hint."Please refer to the plugin documentation for a description of the dependencies. ".self::$dependency_problem);
 				} else {
-					dbg("plugin mediathumbnails: PDF files are supported, but not on this system.\nMost likely, ImageMagick or its PHP extension imagick are not installed properly.\nPlease refer to the plugin documentation for a description of the dependencies.");
+					dbg("plugin mediathumbnails: PDF files are supported, but not on this system.\nMost likely, ImageMagick or its PHP extension imagick are not installed properly.\n".$hint."Please refer to the plugin documentation for a description of the dependencies.");
 				}
 			}
 		} else if (self::supportsImages() && in_array(strtoupper($sourceFileSuffix), self::$formats)) {
@@ -139,6 +150,10 @@ class thumbnail {
 	
 	public function getSourceFilepath() {
 		return $this->source_filepath;
+	}
+
+	public function getSourceFileExists() {
+		return file_exists($this->source_filepath);
 	}
 	
 	protected function getFilename() {

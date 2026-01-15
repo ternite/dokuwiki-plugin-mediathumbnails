@@ -9,3 +9,4 @@ $lang['thumb_paths']              = "Paths within media files (format: ZIP) to l
 $lang['link_to_media_file']       = "Should a click on the thumbnail start the media file download?";
 $lang['show_missing_thumb_error'] = "In case no thumbnail was found, do you want an error message be shown?";
 $lang['no_thumb_error_message']   = "Error message to be shown when no thumbnail was found, and 'show_missing_thumb_error' is set. Media path will automatically be appended!";
+$lang['no_media_error_message']   = "Error message to be shown when no source media was found, and 'show_missing_thumb_error' is set. Media path will automatically be appended!";

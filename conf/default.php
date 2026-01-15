@@ -10,4 +10,5 @@ $conf['thumb_paths']              = array('Thumbnails/thumbnail.png','docProps/t
 $conf['link_to_media_file']       = true;
 $conf['show_missing_thumb_error'] = true;
 $conf['no_thumb_error_message']   = "No thumbnail in "; // media path appended here
+$conf['no_media_error_message']   = "No source media in "; // media path appended here
 
