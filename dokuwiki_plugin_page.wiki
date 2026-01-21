@@ -117,7 +117,13 @@ The file format for PDF thumbnails will always be JPG.
 
 Note that the file format of the thumbnail in office files might theoretically be any image file format. It depends on the format found within the office file. If you use office files with differing file formats, you might need to adjust the config setting `thumb_paths`. If you have such an office file, I'd like to hear about that so I can add the format to the default value of that config option.
 
-Also note that the generated thumbnail file will have the exact same timestamp in the file's modification date as the source file. So when the source file is updated (or reverted to an earlier version), it's possible to check if the thumbnail still matches the file. 
+Also note that the generated thumbnail file will have the exact same timestamp in the file's modification date as the source file. So when the source file is updated (or reverted to an earlier version), it's possible to check if the thumbnail still matches the file.
+
+The modification file is used to check whether a new thumbnail needs to be created:
+
+  * src file is missing -> report error
+  * src file is present, thumbnail is missing -> generate thumbnail, show thumbnail
+  * src file is present, thumbnail is present -> just show thumbnail UNLESS the file modification date of the thumbnail differs from the src file, in that case -> generate thumbnail, show thumbnail
 
 ==== Office files ====
 
