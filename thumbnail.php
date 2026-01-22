@@ -140,7 +140,7 @@ class thumbnail {
 		return $this->max_dimension;
 	}
 	
-	public function create() {
+	public function create_if_missing() {
 		if (!$this->thumb_engine) {
 			return false;
 		}

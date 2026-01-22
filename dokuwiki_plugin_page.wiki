@@ -5,14 +5,14 @@ description: Extracts a thumbnail from media files (ODT, DOCX, PPTX, PDF, JPG, e
 author     : Thomas Schäfer
 email      : thomas@hilbershome.de 
 type       : syntax
-lastupdate : 2026-01-15
+lastupdate : 2026-01-22
 compatible : Hogfather, Igor, Jack Jackrum, Kaos, Librarian
 depends    : 
 conflicts  : 
 similar    : 
 tags       : images, media, mediamanager, thumbnail, odt, pdf
 
-downloadurl: https://github.com/ternite/dokuwiki-plugin-mediathumbnails/archive/v0.95.zip
+downloadurl: https://github.com/ternite/dokuwiki-plugin-mediathumbnails/archive/v0.96.zip
 bugtracker : hhttps://github.com/ternite/dokuwiki-plugin-mediathumbnails/issues
 sourcerepo : https://github.com/ternite/dokuwiki-plugin-mediathumbnails
 donationurl: 
@@ -99,6 +99,10 @@ In case a media file is replaced by another file (with the same name), this will
 
 This will show a thumbnail of the Powerpoint presentation in your wiki page. The thumbnail image will be stored within the media library as `main:media_namespace:presentation.pptx.thumb100.jpeg` (with default settings, and because JPEG appears to be the format of thumbnail images within a PPTX file).
 
+Since v0.96, you can use regular image syntax to change alignment or size of the thumbnails, like the following to generate a right alignment (note the space in front of ''thumbnail''):
+
+<code>{{ thumbnail>main:media_namespace:presentation.pptx}}</code>
+
 ===== Implementation Details =====
 
 In all cases where a file format is supported by the plugin, it will add a thumbnail image into the [[:media_manager|Media Manager]]. In case you decide later on that you don't want these images within your media, your only option is to remove them manually.
@@ -173,6 +177,8 @@ If your PDF and/or image thumbnails don't show up, consider activating the `allo
     * v0.94 (Resolved an issue with the color space of generated thumbnails)
   * **2026-01-15**
     * v0.95 (If the source media file does not exists, the plugin now shows an error message instead of running into an unhandled exception)
+  * **2026-01-22**
+    * v0.96 (using internalmedia as rendering method for media thumbnails, now - this allows using regular image syntax to change alignment or size of the thumbnails)
 
 === Known Bugs and Issues ===
 

@@ -46,7 +46,7 @@ class syntax_plugin_mediathumbnails extends DokuWiki_Syntax_Plugin {
      */
     public function connectTo($mode)
     {
-		$this->Lexer->addSpecialPattern("{{thumbnail>.+?}}", $mode, substr(get_class($this), 7));
+		$this->Lexer->addSpecialPattern("{{[ ]*thumbnail>.+?}}", $mode, substr(get_class($this), 7));
 	}
 
     /**
@@ -61,32 +61,26 @@ class syntax_plugin_mediathumbnails extends DokuWiki_Syntax_Plugin {
      */
     public function handle($match, $state, $pos, Doku_Handler $handler)
     {
-		// Locate the given media file and check if it can be opened as zip
-		$documenttype_command = substr($match, 12, -2); //strip markup
-        
-        // if the command is using a pipe separator, the mediapath file must be extracted. As of now, the text behind the pipe will be ignored!
-        $params = explode("|", $documenttype_command);
-        
-        $mediapath_file = $params[0];
-        
-        $caption = $mediapath_file;
-        
-        if (sizeof($params) > 1) {
-            $caption = $params[1];
-        }
+        // extract the internal reference from the syntax so it can be handled like a normal media file
+        $internalreference = str_replace("thumbnail>","",$match);//substr($match, 12, -2); //strip markup
+
+        // let dokuwiki core parse the media syntax inside the thumbnail syntax
+		$image_params = Doku_Handler_Parse_Media($internalreference);
 		
-		$thumb = new thumbnail($mediapath_file,$this);
+		$thumb = new thumbnail($image_params['src'],$this);
 
         // if source file does not exist, return an array with the first element being null
         if (!$thumb->getSourceFileExists()) {
-            return array(null,$mediapath_file,null);
+            return array(null,null,null);
         }
 
-		if ($thumb->create()) {
-			return array($mediapath_file,$thumb->getMediapath(),$caption);
-		}
-		
-		return array($mediapath_file,null,null);
+		$thumb->create_if_missing();
+
+        // use the thumbnail's mediapath and the image reference's parameters for rendering
+        $thumbnail_params = $image_params;
+        $thumbnail_params['src'] = $thumb->getMediapath();
+
+		return array($thumb->getSourceFilepath(),$thumb->getMediapath(),$thumbnail_params);
     }
 
     /**
@@ -100,14 +94,14 @@ class syntax_plugin_mediathumbnails extends DokuWiki_Syntax_Plugin {
      */
     public function render($mode, Doku_Renderer $renderer, $data)
     {
-		list ($mediapath_file, $mediapath_thumbnail, $caption) = $data;
+		list ($mediapath_src, $mediapath_thumbnail, $image_params) = $data;
 		
-        if ($mode == 'xhtml') {
+        if ($mode == 'xhtml' || $mode == 'odt') {
 
             // check if media source file exists
-			if (is_null($mediapath_file)) {
+			if (is_null($mediapath_src)) {
 				if ($this->getConf('show_missing_thumb_error')) {
-					$renderer->doc .= trim($this->getConf('no_media_error_message')) . " " . $mediapath_thumbnail;
+					$renderer->doc .= trim($this->getConf('no_media_error_message')) . " " . $mediapath_src;
 					return true;
 				} else {
 					return false;
@@ -115,36 +109,32 @@ class syntax_plugin_mediathumbnails extends DokuWiki_Syntax_Plugin {
 			}
 			
 			// check if a thumbnail file was found
-			if (!$mediapath_thumbnail) {
+			if (is_null($mediapath_thumbnail)) {
 				if ($this->getConf('show_missing_thumb_error')) {
-					$renderer->doc .= trim($this->getConf('no_thumb_error_message')) . " " . $mediapath_file;
+					$renderer->doc .= trim($this->getConf('no_thumb_error_message')) . " " . $mediapath_thumbnail;
 					return true;
 				} else {
 					return false;
 				}
 			}
-				
-			$src = ml($mediapath_thumbnail,array());
-			
-			$i          = array();
-			
-			$i['title'] = $mediapath_file;
-			$i['style'] = "max-width:".$this->getConf('thumb_max_dimension')."px;max-height:".$this->getConf('thumb_max_dimension')."px";
-			
-			$iatt = buildAttributes($i);
-			
-			$renderer->doc .= 	($this->getConf('link_to_media_file') ? '<a href="/lib/exe/fetch.php?media=' . $mediapath_file . '">' : '') .
-								'<img src="'.$src.'" title="'.$caption.'" '.$iatt.' />' .
-								($this->getConf('link_to_media_file') ? '</a>' : '');
+            
+            $capped_width = $image_params['width'] > $this->getConf('thumb_max_dimension') ? $this->getConf('thumb_max_dimension') : $image_params['width'];
+            $capped_height = $image_params['height'] > $this->getConf('thumb_max_dimension') ? $this->getConf('thumb_max_dimension') : $image_params['height'];
+            
+            $renderer->internalmedia(
+                $image_params['src'],
+                $image_params['title'],
+                $image_params['align'],
+                $capped_width,
+                $capped_height,
+                $image_params['cache'],
+                $image_params['linking'],
+                false
+            );
+
             return true;
 			
-        } elseif ($mode == 'odt') {
-			
-			// TODO: yet to implement
-			$renderer->cdata("");
-			return true;
-			
-		}
+        }
 
         return false;
     }
