@@ -69,12 +69,18 @@ class syntax_plugin_mediathumbnails extends DokuWiki_Syntax_Plugin {
 		
 		$thumb = new thumbnail($image_params['src'],$this);
 
-        // if source file does not exist, return an array with the first element being null
+        // if source file does not exist, return an array with the second element being null
         if (!$thumb->getSourceFileExists()) {
-            return array(null,null,null);
+            return array('missing_src_file',$image_params['src'],null);
         }
 
-		$thumb->create_if_missing();
+        // create thumbnail if missing
+        $thumb->create_if_missing();
+
+		if ($thumb->creation_has_failed()) {
+            // thumbnail creation failed, return an array with the second element being null
+            return array('missing_thumb_file',$thumb->getMediapath(),null);
+        }
 
         // use the thumbnail's mediapath and the image reference's parameters for rendering
         $thumbnail_params = $image_params;
@@ -94,14 +100,14 @@ class syntax_plugin_mediathumbnails extends DokuWiki_Syntax_Plugin {
      */
     public function render($mode, Doku_Renderer $renderer, $data)
     {
-		list ($mediapath_src, $mediapath_thumbnail, $image_params) = $data;
+		list ($errortype, $errorpath, $image_params) = $data;
 		
         if ($mode == 'xhtml' || $mode == 'odt') {
 
             // check if media source file exists
-			if (is_null($mediapath_src)) {
+			if ($errortype === 'missing_src_file') {
 				if ($this->getConf('show_missing_thumb_error')) {
-					$renderer->doc .= trim($this->getConf('no_media_error_message')) . " " . $mediapath_src;
+					$renderer->doc .= trim($this->getConf('no_media_error_message')) . " " . $errorpath;
 					return true;
 				} else {
 					return false;
@@ -109,9 +115,9 @@ class syntax_plugin_mediathumbnails extends DokuWiki_Syntax_Plugin {
 			}
 			
 			// check if a thumbnail file was found
-			if (is_null($mediapath_thumbnail)) {
+			if ($errortype === 'missing_thumb_file') {
 				if ($this->getConf('show_missing_thumb_error')) {
-					$renderer->doc .= trim($this->getConf('no_thumb_error_message')) . " " . $mediapath_thumbnail;
+					$renderer->doc .= trim($this->getConf('no_thumb_error_message')) . " " . $errorpath;
 					return true;
 				} else {
 					return false;
