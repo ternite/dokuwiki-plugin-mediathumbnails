@@ -14,8 +14,8 @@ function getFileSuffix(string $file) {
 
 class thumbnail {
 	
-	private $source_filepath;
-	private $source_mediapath;
+	private string $source_filepath;
+	private string $source_mediapath;
 	private ?thumb_engine $thumb_engine = null;
 	private int $max_dimension;
 	
@@ -136,44 +136,52 @@ class thumbnail {
 		}
 	}
 	
-	public function getMaxDimension() {
+	public function getMaxDimension(): int {
 		return $this->max_dimension;
 	}
 	
-	public function create() {
+	public function create_if_missing(): bool {
 		if (!$this->thumb_engine) {
 			return false;
 		}
 		
 		return $this->thumb_engine->act();
 	}
+
+	public function creation_has_failed(): bool {
+		if (!$this->thumb_engine) {
+			return true;
+		}
+		
+		return $this->thumb_engine->has_failed();
+	}
 	
 	public function getSourceFilepath() {
 		return $this->source_filepath;
 	}
 
-	public function getSourceFileExists() {
+	public function getSourceFileExists(): bool {
 		return file_exists($this->source_filepath);
 	}
 	
-	protected function getFilename() {
+	protected function getFilename(): string {
 		
 		return basename($this->source_filepath) . ".thumb".$this->max_dimension.".".$this->thumb_engine->getFileSuffix();
 	}
 	
-	public function getFilepath() {
+	public function getFilepath(): string {
 		return dirname($this->source_filepath) . DIRECTORY_SEPARATOR . $this->getFilename();
 	}
 	
-	public function getMediapath() {
+	public function getMediapath(): string|null {
 		if ($this->source_mediapath !== false) {
 			return substr($this->source_mediapath,0,strrpos($this->source_mediapath,':')) . ":" . $this->getFilename();
 		} else {
-			return false;
+			return null;
 		}
 	}
 	
-	public function getTimestamp() {
+	public function getTimestamp(): bool|int {
 		return file_exists($this->getFilepath()) ? filemtime($this->getFilepath()) : false;
 	}
 }

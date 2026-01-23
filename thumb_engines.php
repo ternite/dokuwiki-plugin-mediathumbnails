@@ -8,7 +8,8 @@
  
 abstract class thumb_engine {
 	
-	private ?thumbnail $thumbnail = null;
+	protected ?thumbnail $thumbnail = null;
+	protected bool $state_failed = false;
 	
 	public function __construct(thumbnail $thumbnail) {
 		$this->thumbnail = $thumbnail;
@@ -26,11 +27,13 @@ abstract class thumb_engine {
 		return $this->thumbnail->getMaxDimension();
 	}
 	
-	public function act() {
+	public function act(): bool {
 		if ($this->act_internal()) {
 			// Set timestamp to the source file's timestamp (this is used to check in later passes if the file already exists in the correct version).
-			if (filemtime($this->getSourceFilepath()) !== filemtime($this->getTargetFilepath())) {
-				touch($this->getTargetFilepath(), filemtime($this->getSourceFilepath()));
+			$sourceFilePath = $this->getSourceFilepath();
+			$targetFilePath = $this->getTargetFilepath();
+			if (filemtime($sourceFilePath) !== filemtime($targetFilePath)) {
+				touch($sourceFilePath, filemtime($targetFilePath));
 			}
 			return true;
 		}
@@ -38,22 +41,26 @@ abstract class thumb_engine {
 	}
 	
 	// Checks if a thumbnail file for the current file version has already been created
-	protected function thumb_needs_update() {
+	protected function thumb_needs_update(): bool {
 		return !file_exists($this->getTargetFilepath()) || filemtime($this->getTargetFilepath()) !== filemtime($this->getSourceFilepath());
 	}
+
+	public function has_failed(): bool {
+		return $this->state_failed;
+	}
 	
-	public abstract function act_internal();
+	public abstract function act_internal(): bool;
 	
-	public abstract function getFileSuffix();
+	public abstract function getFileSuffix(): string;
 }
 	
 class thumb_pdf_engine extends thumb_engine {
 	
-	public function getFileSuffix() {
+	public function getFileSuffix(): string {
 		return "jpg";
 	}
 	
-	public function act_internal() {
+	public function act_internal(): bool {
 		if ($this->thumb_needs_update()) {
 			//if file does not exist
 			if (!file_exists($this->getSourceFilepath())) {
@@ -88,11 +95,11 @@ class thumb_pdf_engine extends thumb_engine {
 
 class thumb_img_engine extends thumb_engine {
 	
-	public function getFileSuffix() {
+	public function getFileSuffix(): string {
 		return getFileSuffix($this->getSourceFilepath());
 	}
 	
-	public function act_internal() {
+	public function act_internal(): bool {
 		if ($this->thumb_needs_update()) {
 			$im = new imagick( $this->getSourceFilepath() );
 			$im->thumbnailImage($this->getTargetMaxDimension(),$this->getTargetMaxDimension(),true,false);
@@ -117,11 +124,11 @@ class thumb_zip_engine extends thumb_engine {
 		$this->thumb_paths = $thumb_paths;
 	}
 	
-	public function getFileSuffix() {
+	public function getFileSuffix(): string {
 		return $this->file_suffix;
 	}
 	
-	public function act_internal() {
+	public function act_internal(): bool {
 		
 		$zip = new ZipArchive;
 		if ($zip->open($this->getSourceFilepath()) !== true) {
@@ -131,7 +138,8 @@ class thumb_zip_engine extends thumb_engine {
 		
 		// The media file exists and acts as a zip file!
 		
-		// Check all possible paths (configured in configuration key 'thumb_paths') if there is a file available
+		// Check all possible paths (configured in configuration key 'thumb_paths') if there is a file available - if there are multiple files, the first one found is used.
+		$thumbnail_found = false;
 		foreach($this->thumb_paths as $thumbnail_path) {
 			$this->file_suffix = substr(strrchr($thumbnail_path,'.'),1);
 	
@@ -157,10 +165,17 @@ class thumb_zip_engine extends thumb_engine {
 				// Write thumbnail file to media folder
 				file_put_contents($this->getTargetFilepath(), $thumbnaildata);
 				
+				$thumbnail_found = true;
 				return true;
 			}
 		}
 		
-		return true;
+		// if we reach this point, no thumbnail file was found within the zip file
+		if (!$thumbnail_found) {
+			$this->state_failed = true;
+			msg("plugin mediathumbnails: No thumbnail found inside zip file " . $this->getSourceFilepath());
+		}
+
+		return false;
 	}
 }
