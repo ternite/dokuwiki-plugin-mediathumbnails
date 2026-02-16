@@ -173,7 +173,7 @@ class thumbnail {
 		return dirname($this->source_filepath) . DIRECTORY_SEPARATOR . $this->getFilename();
 	}
 	
-	public function getMediapath(): string|null {
+	public function getMediapath(): ?string {
 		if ($this->source_mediapath !== false) {
 			return substr($this->source_mediapath,0,strrpos($this->source_mediapath,':')) . ":" . $this->getFilename();
 		} else {
@@ -181,7 +181,7 @@ class thumbnail {
 		}
 	}
 	
-	public function getTimestamp(): bool|int {
+	public function getTimestamp(): int {
 		return file_exists($this->getFilepath()) ? filemtime($this->getFilepath()) : false;
 	}
 }
